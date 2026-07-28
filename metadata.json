@@ -1,0 +1,8 @@
+{
+  "name": "Remix Projeto Emagrecimento Saudável",
+  "description": "Controle total da sua jornada de emagrecimento saudável e monitoramento de progresso.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
