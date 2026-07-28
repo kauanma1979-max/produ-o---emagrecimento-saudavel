@@ -37,9 +37,43 @@ import TelaSenha from "./components/TelaSenha";
 import { AppData, AppConfig, Registro, MedicamentoItem } from "./types";
 
 export default function App() {
-  const [appLiberado, setAppLiberado] = useState<boolean>(() => {
+  const verificarSessaoAtiva = (): boolean => {
+    const TEMPO_VALIDADE = 6 * 60 * 60 * 1000; // 6 horas em milissegundos
+    const dados = localStorage.getItem("acesso_projeto") || localStorage.getItem("acesso_app_temporario");
+
+    if (dados) {
+      try {
+        const parsed = JSON.parse(dados);
+        const liberado = parsed.liberado;
+        const data = parsed.data || parsed.dataLiberacao;
+        const agora = Date.now();
+        if (liberado === "sim" && agora - data < TEMPO_VALIDADE) {
+          return true;
+        }
+      } catch {
+        // Ignora e cai no fallback
+      }
+      localStorage.removeItem("acesso_projeto");
+      localStorage.removeItem("acesso_app_temporario");
+      localStorage.removeItem("app_liberado");
+      return false;
+    }
+
     return localStorage.getItem("app_liberado") === "sim";
-  });
+  };
+
+  const [appLiberado, setAppLiberado] = useState<boolean>(() => verificarSessaoAtiva());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const ativa = verificarSessaoAtiva();
+      if (!ativa && appLiberado) {
+        setAppLiberado(false);
+      }
+    }, 10000); // Checa a cada 10 segundos
+    return () => clearInterval(interval);
+  }, [appLiberado]);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -326,6 +360,7 @@ export default function App() {
         <button
           onClick={() => {
             localStorage.removeItem("app_liberado");
+            localStorage.removeItem("acesso_app_temporario");
             setAppLiberado(false);
           }}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer text-rose-400 hover:text-rose-300 hover:bg-rose-950/30"
