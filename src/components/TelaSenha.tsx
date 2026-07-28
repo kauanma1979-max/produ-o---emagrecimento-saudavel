@@ -38,16 +38,23 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
   const [bloqueado, setBloqueado] = useState(false);
 
   // Obtém lista de senhas permitidas a partir de variáveis de ambiente Vercel / Studio ou window.__SENHA_APP
-  const envMeta = (import.meta as unknown as { env?: Record<string, string | undefined> }).env || {};
+  const sAcesso = import.meta.env.VITE_SENHA_ACESSO;
+  const s1 = import.meta.env.VITE_SENHA1;
+  const s2 = import.meta.env.VITE_SENHA2;
+  const s3 = import.meta.env.VITE_SENHA3;
+  const sGenerico = import.meta.env.VITE_SENHA;
+  const winSenha = typeof window !== "undefined" ? (window as unknown as Record<string, string>).__SENHA_APP : undefined;
+
   const senhasPermitidas = [
-    envMeta.VITE_SENHA_ACESSO,
-    envMeta.VITE_SENHA1,
-    envMeta.VITE_SENHA2,
-    envMeta.VITE_SENHA3,
-    typeof window !== "undefined" ? (window as unknown as Record<string, string>).__SENHA_APP : undefined,
+    sAcesso,
+    s1,
+    s2,
+    s3,
+    sGenerico,
+    winSenha,
     "123456",
     "1234"
-  ].filter((s): s is string => Boolean(s && s.trim().length > 0));
+  ].filter((s): s is string => typeof s === "string" && s.trim().length > 0);
 
   // Verifica se o usuário está temporariamente bloqueado por muitas tentativas
   const verificarBloqueio = (): boolean => {
@@ -139,9 +146,11 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
     }
 
     const senhaDigitada = senhaInput.trim();
-    const senhaValida = senhasPermitidas.some(
-      (s) => s.trim() === senhaDigitada
-    );
+    const senhaValida = senhasPermitidas.some((s) => {
+      if (!s) return false;
+      const sLimpa = String(s).trim().replace(/^["']|["']$/g, "").trim();
+      return senhaDigitada === sLimpa || senhaDigitada === String(s).trim();
+    });
 
     if (senhaValida) {
       const objetoAcesso = {
