@@ -28,6 +28,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import RegistroIngestaoCalorias from "./RegistroIngestaoCalorias";
 
 export interface LinkNutricional {
   id: string;
@@ -944,6 +945,9 @@ export default function PlanoNutricional() {
           </div>
         </div>
       </div>
+
+      {/* REGISTRO DE INGESTÃO CALÓRICA & TABELA DE BUSCA */}
+      <RegistroIngestaoCalorias metaCaloricaDiaria={currentDia.totalKcal} />
 
       {/* Days Selector Tabs */}
       <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-1 md:items-center md:justify-between">
