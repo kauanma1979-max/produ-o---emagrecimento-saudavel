@@ -138,10 +138,41 @@ export default function App() {
     };
   });
 
-  // Save data to localStorage whenever appData state changes
+  // Save data & create JSON snapshot automatically whenever appData changes or when app closes/unloads
   useEffect(() => {
     localStorage.setItem("projetoEmagrecimentoFinal", JSON.stringify(appData));
+    salvarJsonSnapshotAuto(appData);
+
+    const handleAutoSaveOnUnload = () => {
+      salvarJsonSnapshotAuto(appData);
+    };
+
+    window.addEventListener("beforeunload", handleAutoSaveOnUnload);
+    window.addEventListener("pagehide", handleAutoSaveOnUnload);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        salvarJsonSnapshotAuto(appData);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleAutoSaveOnUnload);
+      window.removeEventListener("pagehide", handleAutoSaveOnUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [appData]);
+
+  // Handler executado automaticamente ao digitar a senha correta
+  const handleSucessoSenha = () => {
+    // 1. Busca o JSON salvo e restaura os dados do programa
+    const resultado = restaurarJsonSnapshotAuto();
+    if (resultado.success && resultado.appData) {
+      setAppData(resultado.appData);
+    }
+    // 2. Inicia o programa
+    setAppLiberado(true);
+  };
 
   // Handler to export COMPLETE app data as a JSON backup file
   const handleExportBackup = () => {
@@ -606,7 +637,7 @@ export default function App() {
   );
 
   if (!appLiberado) {
-    return <TelaSenha onSuccess={() => setAppLiberado(true)} />;
+    return <TelaSenha onSuccess={handleSucessoSenha} />;
   }
 
   return (
