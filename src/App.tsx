@@ -106,13 +106,16 @@ export default function App() {
   };
 
   const handleSairApp = () => {
-    // 1. Gera e salva o arquivo JSON de backup antes de sair
+    // 1. Gera o arquivo JSON e dispara o download físico direto para a pasta de Downloads
+    handleExportBackup();
+
+    // 2. Salva também no banco interno de snapshot de recuperação automática
     salvarJsonSnapshotAuto(appData);
 
-    // 2. Exibe confirmação explícita de que o arquivo JSON foi salvo no backup
-    alert("💾 Backup do arquivo JSON feito e salvo com sucesso!\n\nO aplicativo foi encerrado com segurança.");
+    // 3. Exibe mensagem clara confirmando a automação de backup
+    alert("💾 Backup do arquivo .json baixado com sucesso para sua pasta de Downloads!\n\nSeu progresso foi salvo e o programa encerrado em segurança.");
 
-    // 3. Encerra a sessão e bloqueia o app
+    // 4. Encerra a sessão e bloqueia o app
     localStorage.removeItem("acesso_projeto");
     localStorage.removeItem("acesso_app_temporario");
     localStorage.removeItem("app_liberado");
@@ -1020,23 +1023,27 @@ export default function App() {
                 />
                 
                 {/* Database Backup & Restore in Modal */}
-                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-150 space-y-3">
-                  <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">
-                    Exportar / Importar Dados do App
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-3">
+                  <h4 className="text-xs font-black text-[#263238] uppercase tracking-wider flex items-center gap-2">
+                    <Download className="w-4 h-4 text-[#2E7D32]" />
+                    <span>Download Físico para o seu Computador / Celular (.json)</span>
                   </h4>
-                  <div className="grid grid-cols-2 gap-3">
+                  <p className="text-xs text-[#607D8B] font-medium leading-relaxed">
+                    Caso queira baixar uma cópia do arquivo <strong>.json</strong> direto para a sua pasta de Downloads, clique no botão <strong>&quot;Exportar backup (.json)&quot;</strong> abaixo.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <button
                       onClick={handleExportBackup}
-                      className="flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-700 font-bold py-2 px-3 rounded-xl text-xs border border-slate-200 transition-all cursor-pointer shadow-sm"
+                      className="flex items-center justify-center gap-2 bg-[#2E7D32] hover:bg-[#27682A] text-white font-bold py-2.5 px-3.5 rounded-xl text-xs transition-all cursor-pointer shadow-md shadow-[#2E7D32]/20"
                     >
-                      <Download className="w-4 h-4 text-indigo-500" />
-                      <span>Backup JSON</span>
+                      <Download className="w-4 h-4 text-white" />
+                      <span>Exportar backup (.json)</span>
                     </button>
                     <button
                       onClick={() => document.getElementById("restore-input-modal")?.click()}
-                      className="flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-700 font-bold py-2 px-3 rounded-xl text-xs border border-slate-200 transition-all cursor-pointer shadow-sm"
+                      className="flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-700 font-bold py-2.5 px-3.5 rounded-xl text-xs border border-slate-200 transition-all cursor-pointer shadow-xs"
                     >
-                      <Upload className="w-4 h-4 text-indigo-500" />
+                      <Upload className="w-4 h-4 text-[#1976D2]" />
                       <span>Restaurar JSON</span>
                     </button>
                     <input
