@@ -21,7 +21,9 @@ import {
   ChevronRight,
   FileText,
   Lock,
-  Ruler
+  Ruler,
+  Flame,
+  Activity
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ConfigPerfil from "./components/ConfigPerfil";
@@ -36,6 +38,7 @@ import PlanoNutricional from "./components/PlanoNutricional";
 import RelatorioPDFView from "./components/RelatorioPDFView";
 import TelaSenha from "./components/TelaSenha";
 import AbaEvolucaoMedidas from "./components/AbaEvolucaoMedidas";
+import AtividadeFisicaTab from "./components/AtividadeFisicaTab";
 import { AppData, AppConfig, Registro, MedicamentoItem } from "./types";
 
 export default function App() {
@@ -161,7 +164,19 @@ export default function App() {
         }
       }
 
-      // 3. Segurança / Acesso por Senha (se configurado)
+      // 3. Atividade Física (Musculação e Cardio)
+      let musculacaoData: any[] = appData.musculacao || [];
+      let cardioData: any[] = appData.cardio || [];
+      const savedMusc = localStorage.getItem("atividade_musculacao_list");
+      if (savedMusc) {
+        try { musculacaoData = JSON.parse(savedMusc); } catch (e) { console.error(e); }
+      }
+      const savedCardio = localStorage.getItem("atividade_cardio_list");
+      if (savedCardio) {
+        try { cardioData = JSON.parse(savedCardio); } catch (e) { console.error(e); }
+      }
+
+      // 4. Segurança / Acesso por Senha (se configurado)
       const acessoProjeto = localStorage.getItem("acesso_projeto");
       const acessoTemporario = localStorage.getItem("acesso_app_temporario");
 
@@ -173,6 +188,8 @@ export default function App() {
         config: appData.config,
         registros: appData.registros,
         medicamentos: appData.medicamentos || [],
+        musculacao: musculacaoData,
+        cardio: cardioData,
         rastreadorSubcutaneo: {
           completedApplications: subcutaneaCompleted
         },
@@ -428,6 +445,18 @@ export default function App() {
         >
           <Apple className="w-4 h-4" />
           <span>Plano Nutricional</span>
+        </button>
+
+        <button
+          onClick={() => { setActiveTab("atividade_fisica"); setMobileMenuOpen(false); }}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+            activeTab === "atividade_fisica"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+          }`}
+        >
+          <Flame className="w-4 h-4 text-amber-400" />
+          <span>Atividade Física</span>
         </button>
 
         <button
@@ -753,6 +782,19 @@ export default function App() {
                 className="space-y-6"
               >
                 <PlanoNutricional />
+              </motion.div>
+            ) : activeTab === "atividade_fisica" ? (
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-6"
+              >
+                <AtividadeFisicaTab
+                  musculacaoData={appData.musculacao}
+                  cardioData={appData.cardio}
+                  onSaveMusculacao={(items) => setAppData((prev) => ({ ...prev, musculacao: items }))}
+                  onSaveCardio={(items) => setAppData((prev) => ({ ...prev, cardio: items }))}
+                />
               </motion.div>
             ) : activeTab === "relatorio" ? (
               <motion.div 

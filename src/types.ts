@@ -42,9 +42,32 @@ export interface MedicamentoItem {
   imagem?: string;
 }
 
+export interface MusculacaoItem {
+  id: string;
+  vezesPorSemana: number;
+  aparelho: string;
+  exercicio: string;
+  local: "Academia" | "Em Casa";
+  pesoKg: number;
+  obs?: string;
+  dataRegistro?: string;
+}
+
+export interface CardioItem {
+  id: string;
+  vezesPorSemana: number;
+  tipoExercicio: string;
+  duracaoMinutos: number;
+  intensidade?: "Leve" | "Moderada" | "Intensa";
+  obs?: string;
+  dataRegistro?: string;
+}
+
 export interface AppData {
   config: AppConfig;
   registros: Registro[];
   medicamentos?: MedicamentoItem[];
+  musculacao?: MusculacaoItem[];
+  cardio?: CardioItem[];
 }
 
