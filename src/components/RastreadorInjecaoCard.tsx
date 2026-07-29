@@ -80,6 +80,91 @@ export function getMonthGroupNameFromIso(isoDateStr: string, fallbackMonthGroup?
   return fallbackMonthGroup || "📅 OUTRAS DATAS";
 }
 
+export interface MedColorTheme {
+  borderBg: string;
+  iconBg: string;
+  badgeBg: string;
+  filterActiveBg: string;
+  dotBg: string;
+}
+
+const MEDICATION_PALETTES: MedColorTheme[] = [
+  { // Blue (Tirzepatida)
+    borderBg: "bg-blue-600",
+    iconBg: "bg-blue-50 text-blue-600",
+    badgeBg: "bg-blue-100 text-blue-900 border border-blue-200/80 font-black",
+    filterActiveBg: "bg-blue-600 text-white shadow-sm",
+    dotBg: "bg-blue-600"
+  },
+  { // Emerald (Retatrutida)
+    borderBg: "bg-emerald-600",
+    iconBg: "bg-emerald-50 text-emerald-600",
+    badgeBg: "bg-emerald-100 text-emerald-900 border border-emerald-200/80 font-black",
+    filterActiveBg: "bg-emerald-600 text-white shadow-sm",
+    dotBg: "bg-emerald-600"
+  },
+  { // Purple (Ozempic / Semaglutida)
+    borderBg: "bg-purple-600",
+    iconBg: "bg-purple-50 text-purple-600",
+    badgeBg: "bg-purple-100 text-purple-900 border border-purple-200/80 font-black",
+    filterActiveBg: "bg-purple-600 text-white shadow-sm",
+    dotBg: "bg-purple-600"
+  },
+  { // Amber/Orange (Mounjaro)
+    borderBg: "bg-amber-600",
+    iconBg: "bg-amber-50 text-amber-700",
+    badgeBg: "bg-amber-100 text-amber-900 border border-amber-200/80 font-black",
+    filterActiveBg: "bg-amber-600 text-white shadow-sm",
+    dotBg: "bg-amber-600"
+  },
+  { // Rose / Pink (Custom 1)
+    borderBg: "bg-rose-600",
+    iconBg: "bg-rose-50 text-rose-600",
+    badgeBg: "bg-rose-100 text-rose-900 border border-rose-200/80 font-black",
+    filterActiveBg: "bg-rose-600 text-white shadow-sm",
+    dotBg: "bg-rose-600"
+  },
+  { // Cyan / Teal (Custom 2)
+    borderBg: "bg-cyan-600",
+    iconBg: "bg-cyan-50 text-cyan-700",
+    badgeBg: "bg-cyan-100 text-cyan-900 border border-cyan-200/80 font-black",
+    filterActiveBg: "bg-cyan-600 text-white shadow-sm",
+    dotBg: "bg-cyan-600"
+  },
+  { // Indigo (Custom 3)
+    borderBg: "bg-indigo-600",
+    iconBg: "bg-indigo-50 text-indigo-600",
+    badgeBg: "bg-indigo-100 text-indigo-900 border border-indigo-200/80 font-black",
+    filterActiveBg: "bg-indigo-600 text-white shadow-sm",
+    dotBg: "bg-indigo-600"
+  },
+  { // Fuchsia / Violet (Custom 4)
+    borderBg: "bg-fuchsia-600",
+    iconBg: "bg-fuchsia-50 text-fuchsia-600",
+    badgeBg: "bg-fuchsia-100 text-fuchsia-900 border border-fuchsia-200/80 font-black",
+    filterActiveBg: "bg-fuchsia-600 text-white shadow-sm",
+    dotBg: "bg-fuchsia-600"
+  }
+];
+
+export function getMedicationTheme(medName: string, availableMedications: string[] = []): MedColorTheme {
+  const lower = (medName || "").toLowerCase().trim();
+  if (lower.includes("tirzepatida")) return MEDICATION_PALETTES[0];
+  if (lower.includes("retatrutida")) return MEDICATION_PALETTES[1];
+  if (lower.includes("ozempic") || lower.includes("semaglutida")) return MEDICATION_PALETTES[2];
+  if (lower.includes("mounjaro")) return MEDICATION_PALETTES[3];
+
+  let idx = availableMedications.findIndex((m) => m.toLowerCase().trim() === lower);
+  if (idx < 0) {
+    let hash = 0;
+    for (let i = 0; i < lower.length; i++) {
+      hash = (hash << 5) - hash + lower.charCodeAt(i);
+    }
+    idx = Math.abs(hash);
+  }
+  return MEDICATION_PALETTES[idx % MEDICATION_PALETTES.length];
+}
+
 export const SCHEDULE_DATA: ScheduleItem[] = [
   // MÊS 1: JULHO/AGOSTO 2026
   { dateStr: "16/07/2026", isoDate: "2026-07-16", dayOfWeek: "Quinta-feira", medication: "Tirzepatida", dosageMg: 2.5, mainArea: "Abdômen Esquerdo", microArea: "Lado esquerdo do umbigo, parte superior", monthGroup: "📅 MÊS 1: JULHO/AGOSTO 2026" },
@@ -515,10 +600,8 @@ export default function RastreadorInjecaoCard() {
   const completedCount = completedIds.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // Calculate dosage stats per medication & grand total
+  // Calculate dosage stats per medication
   const medStatsMap: Record<string, { totalAppliedMg: number; completedCount: number; totalCount: number }> = {};
-  let grandTotalAppliedMg = 0;
-  let grandTotalCompletedCount = 0;
 
   scheduleList.forEach((item, idx) => {
     const isDone = completedIds.includes(String(idx));
@@ -534,8 +617,6 @@ export default function RastreadorInjecaoCard() {
     if (isDone) {
       medStatsMap[canonicalName].completedCount++;
       medStatsMap[canonicalName].totalAppliedMg += dose;
-      grandTotalAppliedMg += dose;
-      grandTotalCompletedCount++;
     }
   });
 
@@ -583,44 +664,17 @@ export default function RastreadorInjecaoCard() {
         </div>
       </div>
 
-      {/* Dosage Accumulation Cards */}
+      {/* Dosage Accumulation Cards per Medication */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Card Total Geral */}
-        <div className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-3xl p-5 shadow-md flex items-center justify-between relative overflow-hidden">
-          <div className="space-y-1 z-10">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
-              <h3 className="text-[11px] font-black uppercase tracking-wider text-indigo-200">Total Geral Aplicado</h3>
-            </div>
-            <p className="text-2xl md:text-3xl font-black tracking-tight text-white">
-              {grandTotalAppliedMg.toFixed(1).replace(".", ",")} mg
-            </p>
-            <p className="text-xs text-indigo-200 font-semibold">
-              {grandTotalCompletedCount} {grandTotalCompletedCount === 1 ? "aplicação realizada" : "aplicações realizadas"}
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-white/10 text-indigo-300 flex items-center justify-center backdrop-blur-md z-10 shrink-0">
-            <Award className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* Dynamic Cards per Medication */}
         {Object.entries(medStatsMap).map(([medName, stats]) => {
-          const lower = medName.toLowerCase();
-          const isTirz = lower.includes("tirzepatida");
-          const isReta = lower.includes("retatrutida");
-          const isOzempic = lower.includes("ozempic") || lower.includes("semaglutida");
-          const isMounjaro = lower.includes("mounjaro");
-
-          const borderBg = isTirz ? "bg-blue-600" : isReta ? "bg-emerald-600" : isOzempic ? "bg-purple-600" : isMounjaro ? "bg-amber-600" : "bg-indigo-600";
-          const iconBg = isTirz ? "bg-blue-50 text-blue-600" : isReta ? "bg-emerald-50 text-emerald-600" : isOzempic ? "bg-purple-50 text-purple-600" : isMounjaro ? "bg-amber-50 text-amber-600" : "bg-indigo-50 text-indigo-600";
+          const theme = getMedicationTheme(medName, availableMedications);
 
           return (
             <div key={medName} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 flex items-center justify-between relative overflow-hidden">
-              <div className={`absolute right-0 top-0 bottom-0 w-2 ${borderBg}`}></div>
+              <div className={`absolute right-0 top-0 bottom-0 w-2 ${theme.borderBg}`}></div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${borderBg}`}></span>
+                  <span className={`w-2.5 h-2.5 rounded-full ${theme.dotBg}`}></span>
                   <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-500 truncate max-w-[170px]" title={medName}>
                     {medName} (Total)
                   </h3>
@@ -632,7 +686,7 @@ export default function RastreadorInjecaoCard() {
                   {stats.completedCount} de {stats.totalCount} {stats.completedCount === 1 ? "aplicação realizada" : "aplicações realizadas"}
                 </p>
               </div>
-              <div className={`w-12 h-12 rounded-2xl ${iconBg} flex items-center justify-center shadow-inner shrink-0`}>
+              <div className={`w-12 h-12 rounded-2xl ${theme.iconBg} flex items-center justify-center shadow-inner shrink-0`}>
                 <Award className="w-6 h-6" />
               </div>
             </div>
@@ -671,13 +725,14 @@ export default function RastreadorInjecaoCard() {
 
           {availableMedications.map((med) => {
             const isSelected = filterMed.toLowerCase() === med.toLowerCase();
+            const theme = getMedicationTheme(med, availableMedications);
             return (
               <button
                 key={med}
                 type="button"
                 onClick={() => setFilterMed(med.toLowerCase())}
                 className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                  isSelected ? "bg-indigo-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  isSelected ? theme.filterActiveBg : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 {med}
@@ -720,6 +775,7 @@ export default function RastreadorInjecaoCard() {
                   const isCompleted = completedIds.includes(String(item.originalIndex));
                   const itemDosage = getItemDosageNumber(item.originalIndex);
                   const dosageStr = itemDosage.toFixed(1).replace(".", ",") + " mg";
+                  const medTheme = getMedicationTheme(item.medication, availableMedications);
 
                   return (
                     <motion.div
@@ -753,9 +809,7 @@ export default function RastreadorInjecaoCard() {
                             <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
                               {item.dayOfWeek}
                             </span>
-                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                              item.medication === "Tirzepatida" ? "bg-blue-100 text-blue-800" : "bg-emerald-100 text-emerald-800"
-                            }`}>
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${medTheme.badgeBg}`}>
                               {item.medication} ({dosageStr})
                             </span>
                           </div>
