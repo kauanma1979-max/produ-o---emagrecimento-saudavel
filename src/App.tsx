@@ -23,7 +23,10 @@ import {
   Lock,
   Ruler,
   Flame,
-  Activity
+  Activity,
+  Sparkles,
+  FileCode,
+  CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ConfigPerfil from "./components/ConfigPerfil";
@@ -40,6 +43,7 @@ import TelaSenha from "./components/TelaSenha";
 import AbaEvolucaoMedidas from "./components/AbaEvolucaoMedidas";
 import AtividadeFisicaTab from "./components/AtividadeFisicaTab";
 import { AppData, AppConfig, Registro, MedicamentoItem } from "./types";
+import { salvarJsonSnapshotAuto, restaurarJsonSnapshotAuto } from "./utils/autoBackupManager";
 
 export default function App() {
   const verificarSessaoAtiva = (): boolean => {

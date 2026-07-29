@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, Clock } from "lucide-react";
+import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, Clock, FileCode, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 
 interface TelaSenhaProps {
@@ -170,7 +170,7 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
         </p>
 
         {/* Quadro de avisos de uso */}
-        <div className="aviso-uso bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 mb-5 text-left text-xs text-slate-600 space-y-1.5 font-medium shadow-xs">
+        <div className="aviso-uso bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 mb-5 text-left text-xs text-slate-600 space-y-2 font-medium shadow-xs">
           <div className="flex items-center gap-2 text-slate-700">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>Acesso exclusivo e intransferível</span>
@@ -178,6 +178,10 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           <div className="flex items-center gap-2 text-slate-700">
             <Clock className="w-4 h-4 text-amber-500 shrink-0" />
             <span>Válido por 6 horas</span>
+          </div>
+          <div className="flex items-center gap-2 text-indigo-700 bg-indigo-50/80 p-2 rounded-xl border border-indigo-100 font-semibold text-[11px]">
+            <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
+            <span>Automação Ativa: Busca o JSON salvo e inicia o programa após a senha</span>
           </div>
         </div>
 
