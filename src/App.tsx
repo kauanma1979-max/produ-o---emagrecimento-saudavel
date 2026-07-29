@@ -35,7 +35,6 @@ import MedicamentosCard from "./components/MedicamentosCard";
 import PlanoNutricional from "./components/PlanoNutricional";
 import RelatorioPDFView from "./components/RelatorioPDFView";
 import TelaSenha from "./components/TelaSenha";
-import ControleAguaCard from "./components/ControleAguaCard";
 import AbaEvolucaoMedidas from "./components/AbaEvolucaoMedidas";
 import { AppData, AppConfig, Registro, MedicamentoItem } from "./types";
 
@@ -162,20 +161,7 @@ export default function App() {
         }
       }
 
-      // 3. Controle de Consumo de Água e Metas
-      const metaAgua = localStorage.getItem("meta_agua_ml");
-      const historicoAguaDiario: Record<string, number> = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith("agua_diaria_")) {
-          const val = localStorage.getItem(key);
-          if (val) {
-            historicoAguaDiario[key] = parseInt(val, 10);
-          }
-        }
-      }
-
-      // 4. Segurança / Acesso por Senha (se configurado)
+      // 3. Segurança / Acesso por Senha (se configurado)
       const acessoProjeto = localStorage.getItem("acesso_projeto");
       const acessoTemporario = localStorage.getItem("acesso_app_temporario");
 
@@ -191,10 +177,6 @@ export default function App() {
           completedApplications: subcutaneaCompleted
         },
         planoNutricional: planoNutricionalData,
-        controleAgua: {
-          metaAguaMl: metaAgua ? parseInt(metaAgua, 10) : undefined,
-          historicoAguaDiario: historicoAguaDiario
-        },
         segurancaAcesso: {
           acessoProjeto: acessoProjeto ? JSON.parse(acessoProjeto) : null,
           acessoTemporario: acessoTemporario ? JSON.parse(acessoTemporario) : null
@@ -286,7 +268,7 @@ export default function App() {
               }
             }
 
-            alert("✅ Backup Completo restaurado com sucesso!\n\nForam restauradas todas as informações:\n• Foto e Perfil do Usuário\n• Registros Diários com Fotos e Medidas Corporal\n• Histórico de Glicemia e Observações\n• Medicamentos Comprados / Cadastrados\n• Informações do Rastreador de Injeções Subcutâneas\n• Cardápio e Plano Nutricional Semanal Customizado\n• Histórico e Meta de Consumo de Água");
+            alert("✅ Backup Completo restaurado com sucesso!\n\nForam restauradas todas as informações:\n• Foto e Perfil do Usuário\n• Registros Diários com Fotos e Medidas Corporal\n• Histórico de Glicemia e Observações\n• Medicamentos Comprados / Cadastrados\n• Informações do Rastreador de Injeções Subcutâneas\n• Cardápio e Plano Nutricional Semanal Customizado");
 
             // Recarrega a página após 300ms para atualizar todos os componentes com o novo localStorage
             setTimeout(() => {
@@ -794,17 +776,12 @@ export default function App() {
                   onOpenConfigModal={() => setShowPerfilModal(true)}
                 />
 
-                {/* Stats row & Water Tracker */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
-                    <DashboardStatus
-                      config={appData.config}
-                      registros={appData.registros}
-                    />
-                  </div>
-                  <div>
-                    <ControleAguaCard pesoAtual={appData.config.pesoInicial} />
-                  </div>
+                {/* Stats row */}
+                <div className="grid grid-cols-1 gap-6">
+                  <DashboardStatus
+                    config={appData.config}
+                    registros={appData.registros}
+                  />
                 </div>
 
                 {/* Charts row */}
