@@ -1,15 +1,265 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Roboto", "Segoe UI", system-ui, sans-serif;
+  --color-verde-principal: #2E7D32;
+  --color-verde-suave: #E8F5E9;
+  --color-azul-principal: #1976D2;
+  --color-azul-suave: #E3F2FD;
+  --color-cinza-fundo: #F5F7FA;
+  --color-texto-principal: #263238;
+  --color-texto-secundario: #607D8B;
+  --color-alerta-erro: #D32F2F;
+  --color-aviso-atencao: #F57C00;
+}
+
+:root {
+  --verde-principal: #2E7D32;
+  --verde-suave: #E8F5E9;
+  --azul-principal: #1976D2;
+  --azul-suave: #E3F2FD;
+  --cinza-fundo: #F5F7FA;
+  --texto-principal: #263238;
+  --texto-secundario: #607D8B;
+  --alerta-erro: #D32F2F;
+  --aviso-atencao: #F57C00;
+  --sombra-verde: rgba(46, 125, 50, 0.10);
+  --sombra-azul: rgba(25, 118, 210, 0.10);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background-color: #f8fafc;
+  background-color: #F5F7FA;
+  color: #263238;
   font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Transição Padrão Globais */
+*, ::before, ::after {
+  transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out, color 0.3s ease-in-out, transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+/* Foco Visível para Acessibilidade */
+:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid #2E7D32 !important;
+  outline-offset: 2px !important;
+}
+
+/* Áreas de toque ampliadas */
+button, a, input[type="button"], input[type="submit"] {
+  min-height: 44px;
+}
+
+/* 1️⃣ EFEITOS VISUAIS COM VERDE E AZUL */
+.glass {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 16px;
+  border: 1px solid rgba(46, 125, 50, 0.15);
+  box-shadow: 0 4px 20px rgba(25, 118, 210, 0.08);
+}
+
+.gradiente-destaque {
+  background: linear-gradient(135deg, #2E7D32, #1976D2);
+  background-size: 200% 200%;
+  transition: all 0.3s ease;
+}
+
+.gradiente-destaque:hover {
+  background-position: 100% 50%;
+}
+
+.cabecalho {
+  background: linear-gradient(90deg, #2E7D32, #1976D2, #2E7D32);
+  background-size: 300% 100%;
+  animation: mover 18s ease infinite;
+}
+
+@keyframes mover {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 2️⃣ ANIMAÇÕES E INTERAÇÕES */
+.aparecer {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: surgir 0.5s ease-out forwards;
+}
+
+@keyframes surgir {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card, .botao {
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.08);
+}
+
+.card:hover, .botao:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(25, 118, 210, 0.12);
+}
+
+.botao:active {
+  transform: scale(0.98);
+}
+
+/* 3️⃣ PADRÕES DE COMPONENTES */
+/* Botões */
+.btn-principal {
+  background-color: #2E7D32;
+  color: #FFFFFF;
+  border-radius: 12px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.15);
+}
+.btn-principal:hover {
+  background-color: #27682A;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(46, 125, 50, 0.25);
+}
+
+.btn-secundario {
+  border: 2px solid #1976D2;
+  color: #1976D2;
+  background-color: transparent;
+  border-radius: 12px;
+  font-weight: 600;
+}
+.btn-secundario:hover {
+  background-color: #E3F2FD;
+  transform: translateY(-2px);
+}
+
+.btn-destaque {
+  background: linear-gradient(135deg, #2E7D32, #1976D2);
+  color: #FFFFFF;
+  border-radius: 12px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(25, 118, 210, 0.2);
+}
+.btn-destaque:hover {
+  opacity: 0.95;
+  transform: translateY(-2px);
+}
+
+/* Mensagens Rápidas */
+.msg-sucesso {
+  background-color: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid rgba(46, 125, 50, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.msg-info {
+  background-color: #E3F2FD;
+  color: #1976D2;
+  border: 1px solid rgba(25, 118, 210, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.msg-aviso {
+  background-color: #FFF3E0;
+  color: #F57C00;
+  border: 1px solid rgba(245, 124, 0, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.msg-erro {
+  background-color: #FFEBEE;
+  color: #D32F2F;
+  border: 1px solid rgba(211, 47, 47, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+/* 4️⃣ MELHORIAS ADICIONAIS DE LAYOUT E USABILIDADE */
+header.reduzido {
+  padding: 8px 0;
+  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.08);
+}
+
+.aba-ativa {
+  border-bottom: 2px solid #2E7D32;
+  color: #2E7D32;
+  font-weight: 700;
+}
+
+.linha-menu {
+  transition: all 0.3s ease;
+}
+
+/* Estados de Carregamento */
+.skeleton {
+  background: linear-gradient(90deg, #F5F7FA 25%, #E8F5E9 50%, #F5F7FA 75%);
+  background-size: 200% 100%;
+  animation: carregar 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes carregar {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.spinner {
+  border: 3px solid #E8F5E9;
+  border-top: 3px solid #2E7D32;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: girar 1s linear infinite;
+}
+
+@keyframes girar {
+  100% { transform: rotate(360deg); }
+}
+
+/* Cartões e Blocos */
+.concluido {
+  background-color: #E8F5E9;
+  border-left: 4px solid #2E7D32;
+}
+
+.pendente {
+  background-color: #E3F2FD;
+  border-left: 4px solid #1976D2;
+}
+
+.selo {
+  background-color: #2E7D32;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #F5F7FA;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #2E7D32;
+  border-radius: 10px;
+}
+
+/* Animação para corredores / ícones */
 @keyframes running-bob {
   0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
   50% { transform: translateY(-5px) scale(1.08) rotate(5deg); }
@@ -18,15 +268,3 @@ body {
 .animate-runner {
   animation: running-bob 0.8s infinite ease-in-out;
 }
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #10b981;
-  border-radius: 10px;
-}
-

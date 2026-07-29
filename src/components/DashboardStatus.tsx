@@ -57,12 +57,13 @@ export default function DashboardStatus({ config, registros }: DashboardStatusPr
     return Math.max(0, Math.min(100, (perdido / metaPerda) * 100));
   }, [config.metaPerda, stats.perdido]);
 
-  // Color interpolation from Ferrari Red rgb(255, 40, 0) to Royal Blue rgb(59, 130, 246)
+  // Official Green (#2E7D32) to Blue (#1976D2) interpolation
   const progressColor = useMemo(() => {
     const ratio = percent / 100;
-    const r = Math.round(255 - (255 - 59) * ratio);
-    const g = Math.round(40 + (130 - 40) * ratio);
-    const b = Math.round(0 + (246 - 0) * ratio);
+    // #1976D2 (25, 118, 210) to #2E7D32 (46, 125, 50)
+    const r = Math.round(25 + (46 - 25) * ratio);
+    const g = Math.round(118 + (125 - 118) * ratio);
+    const b = Math.round(210 + (50 - 210) * ratio);
     return `rgb(${r}, ${g}, ${b})`;
   }, [percent]);
 
@@ -95,8 +96,8 @@ export default function DashboardStatus({ config, registros }: DashboardStatusPr
       value: config.pesoInicial > 0 || registros.length > 0 ? `${stats.pesoAtual.toFixed(1)} kg` : "-- kg",
       subtext: config.pesoInicial > 0 ? `Iniciado com ${config.pesoInicial.toFixed(1)} kg` : "Defina seu peso inicial",
       icon: Scale,
-      colorClass: "text-indigo-600 bg-indigo-50 border-indigo-100",
-      subtextColorClass: "text-slate-500"
+      colorClass: "text-[#1976D2] bg-[#E3F2FD] border-[#1976D2]/20",
+      subtextColorClass: "text-[#607D8B]"
     },
     {
       title: "Total Perdido",
@@ -107,8 +108,8 @@ export default function DashboardStatus({ config, registros }: DashboardStatusPr
         ? "Peso aumentou um pouco" 
         : "Nenhum peso perdido ainda",
       icon: Flame,
-      colorClass: "text-emerald-600 bg-emerald-50 border-emerald-100",
-      subtextColorClass: stats.perdido > 0 ? "text-emerald-600 font-semibold" : "text-slate-500"
+      colorClass: "text-[#2E7D32] bg-[#E8F5E9] border-[#2E7D32]/20",
+      subtextColorClass: stats.perdido > 0 ? "text-[#2E7D32] font-semibold" : "text-[#607D8B]"
     },
     {
       title: "Falta p/ Meta",
@@ -117,8 +118,8 @@ export default function DashboardStatus({ config, registros }: DashboardStatusPr
         ? "🎉 META ATINGIDA!" 
         : `Meta de perda: ${config.metaPerda.toFixed(1)} kg`,
       icon: Milestone,
-      colorClass: "text-orange-600 bg-orange-50 border-orange-100",
-      subtextColorClass: stats.falta === 0 && config.metaPerda > 0 ? "text-emerald-600 font-bold" : "text-slate-500"
+      colorClass: "text-[#F57C00] bg-[#FFF3E0] border-[#F57C00]/20",
+      subtextColorClass: stats.falta === 0 && config.metaPerda > 0 ? "text-[#2E7D32] font-bold" : "text-[#607D8B]"
     },
     {
       title: "Tempo do Projeto",
@@ -127,8 +128,8 @@ export default function DashboardStatus({ config, registros }: DashboardStatusPr
         ? `Início: ${config.dataInicio.split("-").reverse().join("/")}` 
         : "Defina a data de início",
       icon: CalendarRange,
-      colorClass: "text-purple-600 bg-purple-50 border-purple-100",
-      subtextColorClass: "text-slate-500"
+      colorClass: "text-[#1976D2] bg-[#E3F2FD] border-[#1976D2]/20",
+      subtextColorClass: "text-[#607D8B]"
     },
     {
       title: "Glicemia / Diabetes",
@@ -137,8 +138,8 @@ export default function DashboardStatus({ config, registros }: DashboardStatusPr
         ? (stats.ultimaGlicemia >= 126 ? "⚠️ Nível Elevado" : stats.ultimaGlicemia >= 100 ? "⚡ Nível de Atenção" : "✅ Nível Normal") 
         : "Sem medições registradas",
       icon: Activity,
-      colorClass: "text-rose-600 bg-rose-50 border-rose-100",
-      subtextColorClass: stats.ultimaGlicemia !== undefined && stats.ultimaGlicemia >= 126 ? "text-rose-600 font-bold" : stats.ultimaGlicemia !== undefined && stats.ultimaGlicemia >= 100 ? "text-amber-600 font-bold" : "text-emerald-600 font-bold"
+      colorClass: "text-[#D32F2F] bg-[#FFEBEE] border-[#D32F2F]/20",
+      subtextColorClass: stats.ultimaGlicemia !== undefined && stats.ultimaGlicemia >= 126 ? "text-[#D32F2F] font-bold" : stats.ultimaGlicemia !== undefined && stats.ultimaGlicemia >= 100 ? "text-[#F57C00] font-bold" : "text-[#2E7D32] font-bold"
     }
   ];
 
@@ -149,15 +150,15 @@ export default function DashboardStatus({ config, registros }: DashboardStatusPr
         initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"
+        className="bg-white p-6 rounded-2xl border border-[#2E7D32]/15 shadow-sm card"
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
           <div>
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+            <h3 className="text-sm font-black text-[#263238] uppercase tracking-wider flex items-center gap-2">
               <span className="flex h-2.5 w-2.5 rounded-full" style={{ backgroundColor: progressColor }} />
               Evolução da Meta de Peso
             </h3>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">
+            <p className="text-xs text-[#607D8B] font-medium mt-0.5">
               {progressMessage}
             </p>
           </div>
@@ -165,14 +166,14 @@ export default function DashboardStatus({ config, registros }: DashboardStatusPr
             <span className="text-2xl font-black tracking-tight" style={{ color: progressColor }}>
               {percent.toFixed(1)}%
             </span>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+            <span className="text-[10px] text-[#607D8B] font-bold uppercase tracking-wider">
               concluído
             </span>
           </div>
         </div>
 
         {/* The Track Container */}
-        <div className="relative h-4 bg-slate-100 rounded-full border border-slate-200/50 mt-10 mb-5">
+        <div className="relative h-4 bg-[#F5F7FA] rounded-full border border-slate-200 mt-10 mb-5">
           {/* Fills dynamically based on progress percent */}
           <div
             className="h-full rounded-full transition-all duration-700 ease-out"
@@ -227,7 +228,7 @@ export default function DashboardStatus({ config, registros }: DashboardStatusPr
         </div>
 
         {/* Bottom indicators */}
-        <div className="flex justify-between items-center text-[10px] text-slate-400 font-black uppercase tracking-widest px-1">
+        <div className="flex justify-between items-center text-[10px] text-[#607D8B] font-black uppercase tracking-widest px-1">
           <span>Início: {config.pesoInicial > 0 ? `${config.pesoInicial.toFixed(1)} kg` : "0.0 kg"}</span>
           <span className="text-center text-slate-300 hidden sm:inline">|</span>
           <span>Meta: {config.metaPerda > 0 ? `-${config.metaPerda.toFixed(1)} kg` : "0.0 kg"}</span>
@@ -244,18 +245,18 @@ export default function DashboardStatus({ config, registros }: DashboardStatusPr
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: i * 0.08 }}
-            className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col justify-between"
+            className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm card hover:shadow-md transition-all duration-200 flex flex-col justify-between"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                <span className="text-xs font-bold text-[#607D8B] uppercase tracking-widest">
                   {card.title}
                 </span>
-                <div className={`p-2 rounded-lg border ${card.colorClass}`}>
+                <div className={`p-2 rounded-xl border ${card.colorClass}`}>
                   <card.icon className="w-4 h-4" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-slate-900 tracking-tight">
+              <p className="text-3xl font-black text-[#263238] tracking-tight">
                 {card.value}
               </p>
             </div>

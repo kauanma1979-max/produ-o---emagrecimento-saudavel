@@ -392,12 +392,12 @@ export default function App() {
       {/* Brand Header */}
       <div className="p-6 flex items-center justify-between border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0">
+          <div className="w-8 h-8 bg-gradient-to-r from-[#2E7D32] to-[#1976D2] rounded-xl flex items-center justify-center shadow-lg shadow-[#2E7D32]/30 shrink-0">
             <Dumbbell className="w-4 h-4 text-white" />
           </div>
           <div>
             <span className="text-white font-extrabold text-lg tracking-tight block">EMAGRECER.IO</span>
-            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block -mt-1">PROJETO SAUDÁVEL</span>
+            <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider block -mt-1">PROJETO SAUDÁVEL</span>
           </div>
         </div>
         <button
@@ -419,7 +419,7 @@ export default function App() {
           onClick={() => { setActiveTab("dashboard"); setMobileMenuOpen(false); }}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
             activeTab === "dashboard"
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+              ? "bg-gradient-to-r from-[#2E7D32] to-[#1976D2] text-white shadow-md shadow-[#2E7D32]/20"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
           }`}
         >
@@ -431,7 +431,7 @@ export default function App() {
           onClick={() => { setActiveTab("evolucao"); setMobileMenuOpen(false); }}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
             activeTab === "evolucao"
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+              ? "bg-gradient-to-r from-[#2E7D32] to-[#1976D2] text-white shadow-md shadow-[#2E7D32]/20"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
           }`}
         >
@@ -443,7 +443,7 @@ export default function App() {
           onClick={() => { setActiveTab("plano"); setMobileMenuOpen(false); }}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
             activeTab === "plano"
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+              ? "bg-gradient-to-r from-[#2E7D32] to-[#1976D2] text-white shadow-md shadow-[#2E7D32]/20"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
           }`}
         >
@@ -455,7 +455,7 @@ export default function App() {
           onClick={() => { setActiveTab("atividade_fisica"); setMobileMenuOpen(false); }}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
             activeTab === "atividade_fisica"
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+              ? "bg-gradient-to-r from-[#2E7D32] to-[#1976D2] text-white shadow-md shadow-[#2E7D32]/20"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
           }`}
         >
@@ -467,7 +467,7 @@ export default function App() {
           onClick={() => { setActiveTab("injecoes"); setMobileMenuOpen(false); }}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
             activeTab === "injecoes"
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+              ? "bg-gradient-to-r from-[#2E7D32] to-[#1976D2] text-white shadow-md shadow-[#2E7D32]/20"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
           }`}
         >
@@ -479,7 +479,7 @@ export default function App() {
           onClick={() => { setActiveTab("medicamentos"); setMobileMenuOpen(false); }}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
             activeTab === "medicamentos"
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+              ? "bg-gradient-to-r from-[#2E7D32] to-[#1976D2] text-white shadow-md shadow-[#2E7D32]/20"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
           }`}
         >
@@ -491,7 +491,7 @@ export default function App() {
           onClick={() => { setActiveTab("relatorio"); setMobileMenuOpen(false); }}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
             activeTab === "relatorio"
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+              ? "bg-gradient-to-r from-[#2E7D32] to-[#1976D2] text-white shadow-md shadow-[#2E7D32]/20"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
           }`}
         >
@@ -706,7 +706,7 @@ export default function App() {
             <button
               onClick={handleBloquearApp}
               title="Bloquear aplicativo e exigir senha"
-              className="bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 border border-slate-200 cursor-pointer"
+              className="bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 px-3 py-1.5 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 border border-slate-200 cursor-pointer"
             >
               <Lock className="w-4 h-4 text-rose-500" />
               <span className="hidden sm:inline">Bloquear</span>
@@ -715,7 +715,7 @@ export default function App() {
               onClick={() => {
                 setShowRegistroModal(true);
               }}
-              className="bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white px-3 md:px-4 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer"
+              className="bg-[#2E7D32] hover:bg-[#27682A] active:scale-[0.98] text-white px-3 md:px-4 py-1.5 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-2 shadow-md shadow-[#2E7D32]/20 cursor-pointer"
             >
               <PlusCircle className="w-4 h-4" />
               <span className="hidden sm:inline">Novo Registro</span>
@@ -724,7 +724,7 @@ export default function App() {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto bg-slate-50 custom-scrollbar p-4 md:p-8">
+        <div className="flex-1 overflow-y-auto bg-[#F5F7FA] custom-scrollbar p-4 md:p-8">
           <div className="max-w-6xl mx-auto space-y-6">
             
             {/* Quick alert helper for setting goals */}
@@ -732,14 +732,14 @@ export default function App() {
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-indigo-800"
+                className="bg-[#E8F5E9] border border-[#2E7D32]/20 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-[#2E7D32]"
               >
                 <div>
                   <span className="font-bold">🎯 Defina seu perfil de emagrecimento!</span> Abra as configurações de perfil para cadastrar seu peso inicial, foto e meta.
                 </div>
                 <button
                   onClick={() => setShowPerfilModal(true)}
-                  className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-3 rounded-lg transition-colors whitespace-nowrap cursor-pointer"
+                  className="text-xs bg-[#2E7D32] hover:bg-[#27682A] text-white font-bold py-1.5 px-3.5 rounded-xl transition-all whitespace-nowrap cursor-pointer shadow-xs"
                 >
                   Configurar Agora
                 </button>

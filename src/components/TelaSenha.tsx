@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, Clock, FileCode, Sparkles } from "lucide-react";
+import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, Clock, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 
 interface TelaSenhaProps {
@@ -142,7 +142,7 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
   return (
     <div
       id="tela-senha"
-      className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center z-[9999] p-4 font-sans text-slate-800 overflow-y-auto"
+      className="fixed inset-0 bg-[#263238]/90 backdrop-blur-md flex items-center justify-center z-[9999] p-4 font-sans text-[#263238] overflow-y-auto"
       style={{
         position: "fixed",
         inset: 0,
@@ -155,38 +155,38 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
         transition={{ duration: 0.3 }}
         className="caixa-senha bg-white p-7 sm:p-9 rounded-3xl shadow-2xl w-full max-w-md text-center border border-slate-100 relative overflow-hidden my-auto"
       >
-        {/* Barra superior decorativa */}
-        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600" />
+        {/* Barra superior decorativa com gradiente Verde + Azul */}
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#2E7D32] via-[#1976D2] to-[#2E7D32]" />
 
-        <div className="mx-auto w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 shadow-inner">
+        <div className="mx-auto w-14 h-14 bg-[#E8F5E9] text-[#2E7D32] rounded-2xl flex items-center justify-center mb-4 shadow-inner border border-[#2E7D32]/20">
           <Lock className="w-7 h-7" />
         </div>
 
-        <h1 className="text-2xl font-black text-emerald-700 mb-1 tracking-tight">
+        <h1 className="text-2xl font-black text-[#2E7D32] mb-1 tracking-tight">
           Projeto Emagrecimento Saudável
         </h1>
-        <p className="sub text-xs sm:text-sm text-slate-500 mb-4 font-medium">
-          Seu guia para hábitos mais saudáveis
+        <p className="sub text-xs sm:text-sm text-[#607D8B] mb-4 font-medium">
+          Modernidade, Clareza e Identidade Unificada
         </p>
 
         {/* Quadro de avisos de uso */}
-        <div className="aviso-uso bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 mb-5 text-left text-xs text-slate-600 space-y-2 font-medium shadow-xs">
-          <div className="flex items-center gap-2 text-slate-700">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="aviso-uso bg-[#F5F7FA] border border-slate-200/80 rounded-2xl p-3.5 mb-5 text-left text-xs text-[#607D8B] space-y-2 font-medium shadow-xs">
+          <div className="flex items-center gap-2 text-[#263238]">
+            <ShieldCheck className="w-4 h-4 text-[#2E7D32] shrink-0" />
             <span>Acesso exclusivo e intransferível</span>
           </div>
-          <div className="flex items-center gap-2 text-slate-700">
-            <Clock className="w-4 h-4 text-amber-500 shrink-0" />
-            <span>Válido por 6 horas</span>
+          <div className="flex items-center gap-2 text-[#263238]">
+            <Clock className="w-4 h-4 text-[#F57C00] shrink-0" />
+            <span>Sessão válida por 6 horas</span>
           </div>
-          <div className="flex items-center gap-2 text-indigo-700 bg-indigo-50/80 p-2 rounded-xl border border-indigo-100 font-semibold text-[11px]">
-            <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
-            <span>Automação Ativa: Busca o JSON salvo e inicia o programa após a senha</span>
+          <div className="flex items-center gap-2 text-[#1976D2] bg-[#E3F2FD] p-2 rounded-xl border border-[#1976D2]/20 font-semibold text-[11px]">
+            <Sparkles className="w-4 h-4 text-[#1976D2] shrink-0" />
+            <span>Automação Ativa: Carrega o JSON salvo e inicia o programa após a validação</span>
           </div>
         </div>
 
         <div className="relative mb-4">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
             <KeyRound className="w-5 h-5" />
           </div>
           <input
@@ -200,13 +200,13 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
               if (mensagemErro) setMensagemErro(null);
             }}
             onKeyDown={handleKeyDown}
-            className="w-full pl-11 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 font-medium text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+            className="w-full pl-11 pr-11 py-3 bg-[#F5F7FA] border border-slate-200 rounded-xl text-[#263238] placeholder-[#607D8B] font-medium text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#2E7D32] focus:border-transparent transition-all"
             autoFocus
           />
           <button
             type="button"
             onClick={() => setVerSenha(!verSenha)}
-            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#607D8B] hover:text-[#263238] cursor-pointer"
             title={verSenha ? "Ocultar senha" : "Ver senha"}
           >
             {verSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -216,7 +216,7 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
         <button
           id="btn-entrar"
           onClick={tentarAcesso}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold py-3 px-6 rounded-xl text-base shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full bg-[#2E7D32] hover:bg-[#27682A] active:scale-[0.98] text-white font-bold py-3 px-6 rounded-xl text-base shadow-lg shadow-[#2E7D32]/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           <span>Acessar o Projeto</span>
           <ArrowRight className="w-5 h-5" />
@@ -227,7 +227,7 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             id="msg-erro"
-            className="erro mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-semibold flex items-center justify-center gap-2 text-left"
+            className="erro mt-4 p-3 bg-[#FFEBEE] border border-[#D32F2F]/20 rounded-xl text-[#D32F2F] text-xs font-semibold flex items-center justify-center gap-2 text-left"
           >
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{mensagemErro}</span>
@@ -237,6 +237,3 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
     </div>
   );
 }
-
-
-
