@@ -137,23 +137,84 @@ export default function App() {
     localStorage.setItem("projetoEmagrecimentoFinal", JSON.stringify(appData));
   }, [appData]);
 
-  // Handler to export app data as a JSON backup file
+  // Handler to export COMPLETE app data as a JSON backup file
   const handleExportBackup = () => {
     try {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+      // 1. Rastreador Subcutâneo (Aplicações concluídas)
+      let subcutaneaCompleted: string[] = [];
+      const savedInjections = localStorage.getItem("subcutanea_completed_applications");
+      if (savedInjections) {
+        try {
+          subcutaneaCompleted = JSON.parse(savedInjections);
+        } catch (e) {
+          console.error("Erro ao ler injeções:", e);
+        }
+      }
+
+      // 2. Cardápio do Dia / Plano Nutricional Semanal Customizado
+      let planoNutricionalData: any = null;
+      const savedPlano = localStorage.getItem("plano_nutricional_custom_v2");
+      if (savedPlano) {
+        try {
+          planoNutricionalData = JSON.parse(savedPlano);
+        } catch (e) {
+          console.error("Erro ao ler plano nutricional:", e);
+        }
+      }
+
+      // 3. Controle de Consumo de Água e Metas
+      const metaAgua = localStorage.getItem("meta_agua_ml");
+      const historicoAguaDiario: Record<string, number> = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("agua_diaria_")) {
+          const val = localStorage.getItem(key);
+          if (val) {
+            historicoAguaDiario[key] = parseInt(val, 10);
+          }
+        }
+      }
+
+      // 4. Segurança / Acesso por Senha (se configurado)
+      const acessoProjeto = localStorage.getItem("acesso_projeto");
+      const acessoTemporario = localStorage.getItem("acesso_app_temporario");
+
+      const backupCompleto = {
+        versaoBackup: "2.0",
+        dataExportacao: new Date().toISOString(),
+        versaoApp: "2.0.0",
+        appTitle: "Projeto Emagrecimento & Dieta Pro",
+        config: appData.config,
+        registros: appData.registros,
+        medicamentos: appData.medicamentos || [],
+        rastreadorSubcutaneo: {
+          completedApplications: subcutaneaCompleted
+        },
+        planoNutricional: planoNutricionalData,
+        controleAgua: {
+          metaAguaMl: metaAgua ? parseInt(metaAgua, 10) : undefined,
+          historicoAguaDiario: historicoAguaDiario
+        },
+        segurancaAcesso: {
+          acessoProjeto: acessoProjeto ? JSON.parse(acessoProjeto) : null,
+          acessoTemporario: acessoTemporario ? JSON.parse(acessoTemporario) : null
+        }
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupCompleto, null, 2));
       const downloadAnchor = document.createElement("a");
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `dieta_e_peso_backup_${new Date().toISOString().slice(0, 10)}.json`);
+      downloadAnchor.setAttribute("download", `dieta_e_peso_backup_completo_${new Date().toISOString().slice(0, 10)}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
     } catch (err) {
-      console.error("Erro ao gerar backup:", err);
-      alert("Houve um erro ao gerar o arquivo de backup.");
+      console.error("Erro ao gerar backup completo:", err);
+      alert("Houve um erro ao gerar o arquivo de backup completo.");
     }
   };
 
-  // Handler to import and restore app data from a JSON file
+  // Handler to import and restore complete app data from a JSON file
   const handleImportBackup = (e: ChangeEvent<HTMLInputElement>) => {
     const fileReader = new FileReader();
     if (e.target.files && e.target.files[0]) {
@@ -172,7 +233,8 @@ export default function App() {
             const registros = Array.isArray(parsed.registros) ? parsed.registros : [];
             const medicamentos = Array.isArray(parsed.medicamentos) ? parsed.medicamentos : [];
             
-            setAppData({
+            // 1. Atualiza estado principal da aplicação (Perfil, Histórico, Medicamentos e Fotos)
+            const novoAppData: AppData = {
               config: {
                 pesoInicial,
                 metaPerda,
@@ -184,8 +246,52 @@ export default function App() {
               },
               registros,
               medicamentos
-            });
-            alert("✅ Backup restaurado com sucesso com todas as fotos e informações de perfil!");
+            };
+            setAppData(novoAppData);
+            localStorage.setItem("projetoEmagrecimentoFinal", JSON.stringify(novoAppData));
+
+            // 2. Restaura dados do Rastreador Subcutâneo (Injeções)
+            if (parsed.rastreadorSubcutaneo?.completedApplications && Array.isArray(parsed.rastreadorSubcutaneo.completedApplications)) {
+              localStorage.setItem("subcutanea_completed_applications", JSON.stringify(parsed.rastreadorSubcutaneo.completedApplications));
+            } else if (Array.isArray(parsed.subcutaneaCompleted)) {
+              localStorage.setItem("subcutanea_completed_applications", JSON.stringify(parsed.subcutaneaCompleted));
+            }
+
+            // 3. Restaura Cardápio / Plano Nutricional Personalizado
+            if (parsed.planoNutricional) {
+              localStorage.setItem("plano_nutricional_custom_v2", JSON.stringify(parsed.planoNutricional));
+            }
+
+            // 4. Restaura Controle de Consumo de Água
+            if (parsed.controleAgua) {
+              if (parsed.controleAgua.metaAguaMl) {
+                localStorage.setItem("meta_agua_ml", parsed.controleAgua.metaAguaMl.toString());
+              }
+              if (parsed.controleAgua.historicoAguaDiario && typeof parsed.controleAgua.historicoAguaDiario === "object") {
+                Object.entries(parsed.controleAgua.historicoAguaDiario).forEach(([key, val]) => {
+                  if (typeof val === "number" || typeof val === "string") {
+                    localStorage.setItem(key, val.toString());
+                  }
+                });
+              }
+            }
+
+            // 5. Restaura Senha / Segurança de Acesso se presente
+            if (parsed.segurancaAcesso) {
+              if (parsed.segurancaAcesso.acessoProjeto) {
+                localStorage.setItem("acesso_projeto", JSON.stringify(parsed.segurancaAcesso.acessoProjeto));
+              }
+              if (parsed.segurancaAcesso.acessoTemporario) {
+                localStorage.setItem("acesso_app_temporario", JSON.stringify(parsed.segurancaAcesso.acessoTemporario));
+              }
+            }
+
+            alert("✅ Backup Completo restaurado com sucesso!\n\nForam restauradas todas as informações:\n• Foto e Perfil do Usuário\n• Registros Diários com Fotos e Medidas Corporal\n• Histórico de Glicemia e Observações\n• Medicamentos Comprados / Cadastrados\n• Informações do Rastreador de Injeções Subcutâneas\n• Cardápio e Plano Nutricional Semanal Customizado\n• Histórico e Meta de Consumo de Água");
+
+            // Recarrega a página após 300ms para atualizar todos os componentes com o novo localStorage
+            setTimeout(() => {
+              window.location.reload();
+            }, 300);
           } else {
             alert("❌ Erro: O arquivo selecionado não possui um formato de backup válido.");
           }
