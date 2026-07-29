@@ -74,6 +74,16 @@ export default function App() {
     return () => clearInterval(interval);
   }, [appLiberado]);
 
+  const handleBloquearApp = () => {
+    localStorage.removeItem("acesso_projeto");
+    localStorage.removeItem("acesso_app_temporario");
+    localStorage.removeItem("app_liberado");
+    localStorage.removeItem("bloqueio_acesso");
+    localStorage.removeItem("tentativas_acesso");
+    setAppLiberado(false);
+    setMobileMenuOpen(false);
+  };
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -358,11 +368,7 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => {
-            localStorage.removeItem("app_liberado");
-            localStorage.removeItem("acesso_app_temporario");
-            setAppLiberado(false);
-          }}
+          onClick={handleBloquearApp}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer text-rose-400 hover:text-rose-300 hover:bg-rose-950/30"
           title="Bloquear aplicativo com senha"
         >
@@ -556,12 +562,20 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={handleBloquearApp}
+              title="Bloquear aplicativo e exigir senha"
+              className="bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 border border-slate-200 cursor-pointer"
+            >
+              <Lock className="w-4 h-4 text-rose-500" />
+              <span className="hidden sm:inline">Bloquear</span>
+            </button>
             <button 
               onClick={() => {
                 setShowRegistroModal(true);
               }}
-              className="bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white px-4 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer"
+              className="bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white px-3 md:px-4 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer"
             >
               <PlusCircle className="w-4 h-4" />
               <span className="hidden sm:inline">Novo Registro</span>
