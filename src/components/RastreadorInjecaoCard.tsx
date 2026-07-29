@@ -62,6 +62,24 @@ export function formatIsoToDateStr(isoDateStr: string): string {
   return isoDateStr;
 }
 
+const MESES_NOME = [
+  "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+  "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
+];
+
+export function getMonthGroupNameFromIso(isoDateStr: string, fallbackMonthGroup?: string): string {
+  if (!isoDateStr) return fallbackMonthGroup || "📅 OUTRAS DATAS";
+  const parts = isoDateStr.split("-");
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    if (!isNaN(y) && !isNaN(m) && m >= 0 && m < 12) {
+      return `📅 ${MESES_NOME[m]} ${y}`;
+    }
+  }
+  return fallbackMonthGroup || "📅 OUTRAS DATAS";
+}
+
 export const SCHEDULE_DATA: ScheduleItem[] = [
   // MÊS 1: JULHO/AGOSTO 2026
   { dateStr: "16/07/2026", isoDate: "2026-07-16", dayOfWeek: "Quinta-feira", medication: "Tirzepatida", dosageMg: 2.5, mainArea: "Abdômen Esquerdo", microArea: "Lado esquerdo do umbigo, parte superior", monthGroup: "📅 MÊS 1: JULHO/AGOSTO 2026" },
@@ -301,7 +319,7 @@ export default function RastreadorInjecaoCard() {
       dosageMg: 2.5,
       mainArea: "Abdômen Esquerdo",
       microArea: "Lado esquerdo do umbigo, parte superior",
-      monthGroup: "📅 APLICAÇÕES PERSONALIZADAS"
+      monthGroup: getMonthGroupNameFromIso(todayIso)
     });
     setPeriodicityDays(7);
     setIsCustomPeriodicity(false);
@@ -344,6 +362,7 @@ export default function RastreadorInjecaoCard() {
       const itemToSave: ScheduleItem = {
         ...editForm,
         medication: finalMedicationName,
+        monthGroup: getMonthGroupNameFromIso(editForm.isoDate, editForm.monthGroup)
       };
       if (isNewApplication || editingIndex === null) {
         updated.push(itemToSave);
@@ -363,11 +382,6 @@ export default function RastreadorInjecaoCard() {
         { main: "Coxa Direita", micro: "Terço superior da coxa, parte frontal" },
       ];
 
-      const MESES = [
-        "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
-        "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
-      ];
-
       for (let i = 0; i < countToGenerate; i++) {
         const curDt = new Date(y, m - 1, d + i * intervalDays);
         const yr = curDt.getFullYear();
@@ -376,7 +390,7 @@ export default function RastreadorInjecaoCard() {
         const itemIso = `${yr}-${mo}-${dy}`;
         const itemDateStr = `${dy}/${mo}/${yr}`;
         const itemDayOfWeek = getDiaDaSemanaFromIso(itemIso) || "Segunda-feira";
-        const monthNameStr = MESES[curDt.getMonth()];
+        const monthGrpName = getMonthGroupNameFromIso(itemIso);
 
         const rot = autoRotateAreas
           ? ROTATION_AREAS[i % ROTATION_AREAS.length]
@@ -390,7 +404,7 @@ export default function RastreadorInjecaoCard() {
           dosageMg: editForm.dosageMg,
           mainArea: rot.main,
           microArea: rot.micro,
-          monthGroup: `📅 ${finalMedicationName.toUpperCase()}: ${monthNameStr} ${yr}`
+          monthGroup: monthGrpName
         };
 
         if (i === 0 && !isNewApplication && editingIndex !== null) {
@@ -455,57 +469,73 @@ export default function RastreadorInjecaoCard() {
     return 2.4;
   };
 
-  const filteredData = scheduleList.map((item, idx) => ({ ...item, originalIndex: idx })).filter((item) => {
-    if (filterMed !== "all" && item.medication.toLowerCase() !== filterMed.toLowerCase()) {
-      return false;
+  // List of unique medications present in the current schedule list
+  const availableMedications: string[] = [];
+  scheduleList.forEach((item) => {
+    const name = item.medication?.trim();
+    if (name && !availableMedications.some((m) => m.toLowerCase() === name.toLowerCase())) {
+      availableMedications.push(name);
     }
-    if (searchTerm.trim() !== "") {
-      const term = searchTerm.toLowerCase();
-      return (
-        item.dateStr.includes(term) ||
-        item.dayOfWeek.toLowerCase().includes(term) ||
-        item.medication.toLowerCase().includes(term) ||
-        item.mainArea.toLowerCase().includes(term) ||
-        item.microArea.toLowerCase().includes(term) ||
-        item.monthGroup.toLowerCase().includes(term)
-      );
-    }
-    return true;
   });
 
-  // Group filtered data by monthGroup
+  const sortedScheduleList = [...scheduleList].sort((a, b) => a.isoDate.localeCompare(b.isoDate));
+
+  const filteredData = sortedScheduleList
+    .map((item) => ({ ...item, originalIndex: scheduleList.indexOf(item) }))
+    .filter((item) => {
+      if (filterMed !== "all" && item.medication.toLowerCase() !== filterMed.toLowerCase()) {
+        return false;
+      }
+      if (searchTerm.trim() !== "") {
+        const term = searchTerm.toLowerCase();
+        const monthGrpName = getMonthGroupNameFromIso(item.isoDate, item.monthGroup).toLowerCase();
+        return (
+          item.dateStr.includes(term) ||
+          item.dayOfWeek.toLowerCase().includes(term) ||
+          item.medication.toLowerCase().includes(term) ||
+          item.mainArea.toLowerCase().includes(term) ||
+          item.microArea.toLowerCase().includes(term) ||
+          monthGrpName.includes(term)
+        );
+      }
+      return true;
+    });
+
+  // Group filtered data by calendar month
   const groupedData: { [key: string]: (typeof filteredData) } = {};
   filteredData.forEach((item) => {
-    if (!groupedData[item.monthGroup]) {
-      groupedData[item.monthGroup] = [];
+    const groupTitle = getMonthGroupNameFromIso(item.isoDate, item.monthGroup);
+    if (!groupedData[groupTitle]) {
+      groupedData[groupTitle] = [];
     }
-    groupedData[item.monthGroup].push(item);
+    groupedData[groupTitle].push(item);
   });
 
   const totalCount = scheduleList.length;
   const completedCount = completedIds.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // Dosage sums calculation
-  let tirzepatidaTotalMg = 0;
-  let tirzepatidaCompletedCount = 0;
-
-  let retatrutidaTotalMg = 0;
-  let retatrutidaCompletedCount = 0;
+  // Calculate dosage stats per medication & grand total
+  const medStatsMap: Record<string, { totalAppliedMg: number; completedCount: number; totalCount: number }> = {};
+  let grandTotalAppliedMg = 0;
+  let grandTotalCompletedCount = 0;
 
   scheduleList.forEach((item, idx) => {
     const isDone = completedIds.includes(String(idx));
     const dose = getItemDosageNumber(idx);
-    if (item.medication === "Tirzepatida") {
-      if (isDone) {
-        tirzepatidaCompletedCount++;
-        tirzepatidaTotalMg += dose;
-      }
-    } else {
-      if (isDone) {
-        retatrutidaCompletedCount++;
-        retatrutidaTotalMg += dose;
-      }
+    const rawMedName = item.medication?.trim() || "Outro";
+    const canonicalName = availableMedications.find((m) => m.toLowerCase() === rawMedName.toLowerCase()) || rawMedName;
+
+    if (!medStatsMap[canonicalName]) {
+      medStatsMap[canonicalName] = { totalAppliedMg: 0, completedCount: 0, totalCount: 0 };
+    }
+    medStatsMap[canonicalName].totalCount++;
+
+    if (isDone) {
+      medStatsMap[canonicalName].completedCount++;
+      medStatsMap[canonicalName].totalAppliedMg += dose;
+      grandTotalAppliedMg += dose;
+      grandTotalCompletedCount++;
     }
   });
 
@@ -554,52 +584,66 @@ export default function RastreadorInjecaoCard() {
       </div>
 
       {/* Dosage Accumulation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Tirzepatida Dosage Card */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex items-center justify-between relative overflow-hidden">
-          <div className="absolute right-0 top-0 bottom-0 w-2 bg-blue-600"></div>
-          <div className="space-y-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Card Total Geral */}
+        <div className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-3xl p-5 shadow-md flex items-center justify-between relative overflow-hidden">
+          <div className="space-y-1 z-10">
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-blue-600"></span>
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">Tirzepatida (Total Aplicado)</h3>
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+              <h3 className="text-[11px] font-black uppercase tracking-wider text-indigo-200">Total Geral Aplicado</h3>
             </div>
-            <p className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-              {tirzepatidaTotalMg.toFixed(1).replace(".", ",")} mg
+            <p className="text-2xl md:text-3xl font-black tracking-tight text-white">
+              {grandTotalAppliedMg.toFixed(1).replace(".", ",")} mg
             </p>
-            <p className="text-xs text-slate-500 font-semibold">
-              {tirzepatidaCompletedCount} {tirzepatidaCompletedCount === 1 ? "aplicação realizada" : "aplicações realizadas"}
+            <p className="text-xs text-indigo-200 font-semibold">
+              {grandTotalCompletedCount} {grandTotalCompletedCount === 1 ? "aplicação realizada" : "aplicações realizadas"}
             </p>
           </div>
-          <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner">
-            <Award className="w-7 h-7" />
+          <div className="w-12 h-12 rounded-2xl bg-white/10 text-indigo-300 flex items-center justify-center backdrop-blur-md z-10 shrink-0">
+            <Award className="w-6 h-6" />
           </div>
         </div>
 
-        {/* Retatrutida Dosage Card */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex items-center justify-between relative overflow-hidden">
-          <div className="absolute right-0 top-0 bottom-0 w-2 bg-emerald-600"></div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-emerald-600"></span>
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">Retatrutida / Outros (Total Aplicado)</h3>
+        {/* Dynamic Cards per Medication */}
+        {Object.entries(medStatsMap).map(([medName, stats]) => {
+          const lower = medName.toLowerCase();
+          const isTirz = lower.includes("tirzepatida");
+          const isReta = lower.includes("retatrutida");
+          const isOzempic = lower.includes("ozempic") || lower.includes("semaglutida");
+          const isMounjaro = lower.includes("mounjaro");
+
+          const borderBg = isTirz ? "bg-blue-600" : isReta ? "bg-emerald-600" : isOzempic ? "bg-purple-600" : isMounjaro ? "bg-amber-600" : "bg-indigo-600";
+          const iconBg = isTirz ? "bg-blue-50 text-blue-600" : isReta ? "bg-emerald-50 text-emerald-600" : isOzempic ? "bg-purple-50 text-purple-600" : isMounjaro ? "bg-amber-50 text-amber-600" : "bg-indigo-50 text-indigo-600";
+
+          return (
+            <div key={medName} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 flex items-center justify-between relative overflow-hidden">
+              <div className={`absolute right-0 top-0 bottom-0 w-2 ${borderBg}`}></div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${borderBg}`}></span>
+                  <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-500 truncate max-w-[170px]" title={medName}>
+                    {medName} (Total)
+                  </h3>
+                </div>
+                <p className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+                  {stats.totalAppliedMg.toFixed(1).replace(".", ",")} mg
+                </p>
+                <p className="text-xs text-slate-500 font-semibold">
+                  {stats.completedCount} de {stats.totalCount} {stats.completedCount === 1 ? "aplicação realizada" : "aplicações realizadas"}
+                </p>
+              </div>
+              <div className={`w-12 h-12 rounded-2xl ${iconBg} flex items-center justify-center shadow-inner shrink-0`}>
+                <Award className="w-6 h-6" />
+              </div>
             </div>
-            <p className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-              {retatrutidaTotalMg.toFixed(1).replace(".", ",")} mg
-            </p>
-            <p className="text-xs text-slate-500 font-semibold">
-              {retatrutidaCompletedCount} {retatrutidaCompletedCount === 1 ? "aplicação realizada" : "aplicações realizadas"}
-            </p>
-          </div>
-          <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner">
-            <Award className="w-7 h-7" />
-          </div>
-        </div>
+          );
+        })}
       </div>
 
       {/* Controls & Filters Bar */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
         {/* Search Input */}
-        <div className="relative w-full sm:w-72">
+        <div className="relative w-full sm:w-64">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -624,30 +668,28 @@ export default function RastreadorInjecaoCard() {
           >
             Todos
           </button>
-          <button
-            type="button"
-            onClick={() => setFilterMed("tirzepatida")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-              filterMed === "tirzepatida" ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
-          >
-            Tirzepatida
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterMed("retatrutida")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-              filterMed === "retatrutida" ? "bg-emerald-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
-          >
-            Retatrutida
-          </button>
+
+          {availableMedications.map((med) => {
+            const isSelected = filterMed.toLowerCase() === med.toLowerCase();
+            return (
+              <button
+                key={med}
+                type="button"
+                onClick={() => setFilterMed(med.toLowerCase())}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  isSelected ? "bg-indigo-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {med}
+              </button>
+            );
+          })}
 
           <button
             type="button"
             onClick={handleRestoreDefaultSchedule}
             title="Restaurar Cronograma Padrão"
-            className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer text-xs"
+            className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer text-xs ml-auto sm:ml-0"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
