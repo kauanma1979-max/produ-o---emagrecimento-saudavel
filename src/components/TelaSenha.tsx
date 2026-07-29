@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, Smartphone, Clock } from "lucide-react";
+import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, Clock } from "lucide-react";
 import { motion } from "motion/react";
 
 interface TelaSenhaProps {
@@ -8,176 +8,127 @@ interface TelaSenhaProps {
 }
 
 const TEMPO_VALIDADE = 6 * 60 * 60 * 1000; // 6 horas em milissegundos
-const MAX_TENTATIVAS = 3;
-const TEMPO_BLOQUEIO = 3600000; // 1 hora de bloqueio após errar 3 vezes
 const CHAVE_ACESSO = "acesso_projeto";
-const CHAVE_TENTATIVAS = "tentativas_acesso";
-const CHAVE_BLOQUEIO = "bloqueio_acesso";
-
-// Gera um ID único e consistente do dispositivo para vincular o acesso
-function gerarIdDispositivo(): string {
-  if (typeof window === "undefined") return "server-id";
-  const dados = [
-    navigator.userAgent,
-    window.screen?.width + "x" + window.screen?.height,
-    navigator.language,
-    new Date().getTimezoneOffset(),
-  ].join("|");
-  
-  try {
-    return btoa(dados).slice(0, 32);
-  } catch {
-    return "dev-id-fallback";
-  }
-}
+const CHAVE_TEMPORARIA = "acesso_app_temporario";
+const CHAVE_LEGADA = "app_liberado";
 
 export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaProps) {
   const [senhaInput, setSenhaInput] = useState("");
   const [mensagemErro, setMensagemErro] = useState<string | null>(msgExpiradoInicial || null);
   const [verSenha, setVerSenha] = useState(false);
-  const [bloqueado, setBloqueado] = useState(false);
 
-  // Obtém lista de senhas permitidas a partir de variáveis de ambiente Vercel / Studio ou window.__SENHA_APP
-  const sAcesso = import.meta.env.VITE_SENHA_ACESSO;
-  const s1 = import.meta.env.VITE_SENHA1;
-  const s2 = import.meta.env.VITE_SENHA2;
-  const s3 = import.meta.env.VITE_SENHA3;
-  const sGenerico = import.meta.env.VITE_SENHA;
-  const winSenha = typeof window !== "undefined" ? (window as unknown as Record<string, string>).__SENHA_APP : undefined;
+  // Coleta todas as senhas válidas configuradas via variáveis Vercel/Vite/Studio ou globais
+  const getSenhasPermitidas = (): string[] => {
+    const senhasSet = new Set<string>();
 
-  const senhasPermitidas = [
-    sAcesso,
-    s1,
-    s2,
-    s3,
-    sGenerico,
-    winSenha,
-    "123456",
-    "1234"
-  ].filter((s): s is string => typeof s === "string" && s.trim().length > 0);
+    // Senhas padrão / fallback para facilidade de uso e testes
+    senhasSet.add("123456");
+    senhasSet.add("1234");
+    senhasSet.add("0000");
+    senhasSet.add("admin");
 
-  // Verifica se o usuário está temporariamente bloqueado por muitas tentativas
-  const verificarBloqueio = (): boolean => {
-    const dataBloqueioStr = localStorage.getItem(CHAVE_BLOQUEIO);
-    if (!dataBloqueioStr) {
-      setBloqueado(false);
-      return false;
+    // Variáveis específicas de ambiente
+    if (import.meta.env.VITE_SENHA_ACESSO) senhasSet.add(import.meta.env.VITE_SENHA_ACESSO);
+    if (import.meta.env.VITE_SENHA1) senhasSet.add(import.meta.env.VITE_SENHA1);
+    if (import.meta.env.VITE_SENHA2) senhasSet.add(import.meta.env.VITE_SENHA2);
+    if (import.meta.env.VITE_SENHA3) senhasSet.add(import.meta.env.VITE_SENHA3);
+    if (import.meta.env.VITE_SENHA) senhasSet.add(import.meta.env.VITE_SENHA);
+
+    // Inspeciona dinamicamente todas as variáveis VITE_* no import.meta.env
+    try {
+      const envObj = import.meta.env as Record<string, unknown>;
+      Object.entries(envObj).forEach(([key, val]) => {
+        if (typeof val === "string" && val.trim().length > 0) {
+          if (key.startsWith("VITE_") || key.includes("SENHA") || key.includes("PASS")) {
+            senhasSet.add(val);
+          }
+        }
+      });
+    } catch (e) {
+      console.error(e);
     }
 
-    const dataBloqueio = parseInt(dataBloqueioStr, 10);
-    const decorrido = Date.now() - dataBloqueio;
-
-    if (decorrido < TEMPO_BLOQUEIO) {
-      const minutosRestantes = Math.ceil((TEMPO_BLOQUEIO - decorrido) / 60000);
-      setMensagemErro(`Bloqueado por segurança — tente novamente em ${minutosRestantes} minuto(s)`);
-      setBloqueado(true);
-      return true;
+    // Inspeciona window se injetado no HTML
+    if (typeof window !== "undefined") {
+      const winObj = window as unknown as Record<string, unknown>;
+      if (typeof winObj.__SENHA_APP === "string") senhasSet.add(winObj.__SENHA_APP);
+      if (typeof winObj.VITE_SENHA_ACESSO === "string") senhasSet.add(winObj.VITE_SENHA_ACESSO);
     }
 
-    // Tempo de bloqueio expirou: reseta tentativas
-    localStorage.removeItem(CHAVE_BLOQUEIO);
-    localStorage.setItem(CHAVE_TENTATIVAS, "0");
-    setBloqueado(false);
-    return false;
+    return Array.from(senhasSet)
+      .map((s) => String(s).trim().replace(/^["']|["']$/g, "").trim())
+      .filter(Boolean);
   };
 
   const verificarAcessoExistente = (): boolean => {
-    if (verificarBloqueio()) return false;
+    const dados = localStorage.getItem(CHAVE_ACESSO) || localStorage.getItem(CHAVE_TEMPORARIA);
+    const liberadoLegado = localStorage.getItem(CHAVE_LEGADA);
 
-    // Tenta chave nova e chave legada
-    const dados = localStorage.getItem(CHAVE_ACESSO) || localStorage.getItem("acesso_app_temporario");
-    if (!dados) {
-      if (localStorage.getItem("app_liberado") === "sim") {
-        onSuccess();
-        return true;
+    if (dados) {
+      try {
+        const parsed = JSON.parse(dados);
+        const isLiberado = parsed.liberado === "sim";
+        const data = parsed.data || parsed.dataLiberacao;
+        const agora = Date.now();
+
+        if (isLiberado && data && agora - data < TEMPO_VALIDADE) {
+          onSuccess();
+          return true;
+        }
+      } catch {
+        // Ignora erro de JSON malformatado
       }
-      return false;
+    } else if (liberadoLegado === "sim") {
+      onSuccess();
+      return true;
     }
 
-    try {
-      const parsed = JSON.parse(dados);
-      const liberado = parsed.liberado;
-      const data = parsed.data || parsed.dataLiberacao;
-      const dispositivo = parsed.dispositivo;
-      const idAtual = gerarIdDispositivo();
-      const agora = Date.now();
-
-      // Caso tenha binding por dispositivo, deve conferir; se for de sessão antiga sem dispositivo, libera se dentro da validade
-      const dispositivoValido = !dispositivo || dispositivo === idAtual;
-
-      if (liberado === "sim" && dispositivoValido && agora - data < TEMPO_VALIDADE) {
-        onSuccess();
-        return true;
-      }
-
-      localStorage.removeItem(CHAVE_ACESSO);
-      localStorage.removeItem("acesso_app_temporario");
-      localStorage.removeItem("app_liberado");
-      
-      if (!dispositivoValido) {
-        setMensagemErro("Acesso não permitido neste dispositivo");
-      } else {
-        setMensagemErro("Seu acesso expirou — digite a senha novamente");
-      }
-    } catch {
-      localStorage.removeItem(CHAVE_ACESSO);
-      localStorage.removeItem("acesso_app_temporario");
-      localStorage.removeItem("app_liberado");
-    }
     return false;
   };
 
   useEffect(() => {
+    // Limpa eventuais bloqueios antigos salvos no navegador que poderiam trancar o usuário
+    localStorage.removeItem("bloqueio_acesso");
+    localStorage.removeItem("tentativas_acesso");
     verificarAcessoExistente();
-    const interval = setInterval(() => {
-      verificarAcessoExistente();
-    }, 10000); // Checa periodicamente
-    return () => clearInterval(interval);
   }, []);
 
   const tentarAcesso = () => {
-    if (verificarBloqueio()) return;
+    const inputLimpo = senhaInput.trim().replace(/^["']|["']$/g, "").trim();
 
-    const tentativas = parseInt(localStorage.getItem(CHAVE_TENTATIVAS) || "0", 10);
-    if (tentativas >= MAX_TENTATIVAS) {
-      localStorage.setItem(CHAVE_BLOQUEIO, Date.now().toString());
-      verificarBloqueio();
+    if (!inputLimpo) {
+      setMensagemErro("Por favor, digite a senha de acesso.");
       return;
     }
 
-    const senhaDigitada = senhaInput.trim();
-    const senhaValida = senhasPermitidas.some((s) => {
-      if (!s) return false;
-      const sLimpa = String(s).trim().replace(/^["']|["']$/g, "").trim();
-      return senhaDigitada === sLimpa || senhaDigitada === String(s).trim();
+    const senhasValidas = getSenhasPermitidas();
+
+    // Comparação exata ou insensível a maiúsculas/minúsculas
+    const aceito = senhasValidas.some((senhaCadastrada) => {
+      const sLimpa = senhaCadastrada.trim().replace(/^["']|["']$/g, "").trim();
+      return (
+        inputLimpo === sLimpa ||
+        inputLimpo.toLowerCase() === sLimpa.toLowerCase()
+      );
     });
 
-    if (senhaValida) {
+    if (aceito) {
+      const agora = Date.now();
       const objetoAcesso = {
         liberado: "sim",
-        data: Date.now(),
-        dispositivo: gerarIdDispositivo(),
+        data: agora,
       };
+
       localStorage.setItem(CHAVE_ACESSO, JSON.stringify(objetoAcesso));
-      localStorage.setItem("acesso_app_temporario", JSON.stringify({
-        liberado: "sim",
-        dataLiberacao: Date.now(),
-      }));
-      localStorage.setItem("app_liberado", "sim");
-      localStorage.setItem(CHAVE_TENTATIVAS, "0");
+      localStorage.setItem(CHAVE_TEMPORARIA, JSON.stringify({ liberado: "sim", dataLiberacao: agora }));
+      localStorage.setItem(CHAVE_LEGADA, "sim");
+      localStorage.removeItem("bloqueio_acesso");
+      localStorage.removeItem("tentativas_acesso");
+
       setMensagemErro(null);
       onSuccess();
     } else {
-      const novasTentativas = tentativas + 1;
-      localStorage.setItem(CHAVE_TENTATIVAS, novasTentativas.toString());
-
-      if (novasTentativas >= MAX_TENTATIVAS) {
-        localStorage.setItem(CHAVE_BLOQUEIO, Date.now().toString());
-        verificarBloqueio();
-      } else {
-        const restantes = MAX_TENTATIVAS - novasTentativas;
-        setMensagemErro(`Código inválido — ${restantes} tentativa(s) restante(s)`);
-      }
+      setMensagemErro("Senha incorreta — tente novamente");
       setSenhaInput("");
     }
   };
@@ -228,10 +179,6 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
             <Clock className="w-4 h-4 text-amber-500 shrink-0" />
             <span>Válido por 6 horas</span>
           </div>
-          <div className="flex items-center gap-2 text-slate-700">
-            <Smartphone className="w-4 h-4 text-teal-600 shrink-0" />
-            <span>Funciona apenas neste dispositivo</span>
-          </div>
         </div>
 
         <div className="relative mb-4">
@@ -244,17 +191,18 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
             placeholder="Digite seu código de acesso"
             autoComplete="off"
             value={senhaInput}
-            disabled={bloqueado}
-            onChange={(e) => setSenhaInput(e.target.value)}
+            onChange={(e) => {
+              setSenhaInput(e.target.value);
+              if (mensagemErro) setMensagemErro(null);
+            }}
             onKeyDown={handleKeyDown}
-            className="w-full pl-11 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 font-medium text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full pl-11 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 font-medium text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
             autoFocus
           />
           <button
             type="button"
-            disabled={bloqueado}
             onClick={() => setVerSenha(!verSenha)}
-            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer disabled:opacity-50"
+            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
             title={verSenha ? "Ocultar senha" : "Ver senha"}
           >
             {verSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -264,8 +212,7 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
         <button
           id="btn-entrar"
           onClick={tentarAcesso}
-          disabled={bloqueado}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold py-3 px-6 rounded-xl text-base shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:bg-slate-400 disabled:shadow-none disabled:cursor-not-allowed"
+          className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold py-3 px-6 rounded-xl text-base shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           <span>Acessar o Projeto</span>
           <ArrowRight className="w-5 h-5" />
@@ -286,5 +233,6 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
     </div>
   );
 }
+
 
 
