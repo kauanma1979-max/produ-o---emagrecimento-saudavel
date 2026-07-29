@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, FormEvent } from "react";
 import { 
   Apple, 
   Calendar, 
@@ -22,9 +22,51 @@ import {
   Plus,
   RotateCcw,
   Save,
-  X
+  X,
+  Link as LinkIcon,
+  Video,
+  ExternalLink
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+
+export interface LinkNutricional {
+  id: string;
+  titulo: string;
+  url: string;
+  tipo: "video" | "receita";
+  descricao?: string;
+}
+
+const DEFAULT_LINKS: LinkNutricional[] = [
+  {
+    id: "1",
+    titulo: "Vídeo: Como Fazer Panqueca Proteica com Whey",
+    url: "https://www.youtube.com/results?search_query=panqueca+proteica+fit",
+    tipo: "video",
+    descricao: "Técnica simples para deixar a massa macia e sem gosto forte de ovo."
+  },
+  {
+    id: "2",
+    titulo: "Vídeo: Preparo de Shakes Anabólicos e Cremosos",
+    url: "https://www.youtube.com/results?search_query=shake+proteico+cremoso",
+    tipo: "video",
+    descricao: "Ideias de shakes com banana, pasta de amendoim e café."
+  },
+  {
+    id: "3",
+    titulo: "Receitas de Marmitas Fitness de Frango e Patinho",
+    url: "https://www.tudogostoso.com.br/busca?q=frango+fit+grelhado",
+    tipo: "receita",
+    descricao: "Opções de tempero e preparo para manter o frango suculento."
+  },
+  {
+    id: "4",
+    titulo: "Sobremesas e Mousses Proteicas para a Ceia",
+    url: "https://www.tudogostoso.com.br/busca?q=mousse+fit+whey",
+    tipo: "receita",
+    descricao: "Receitas usando iogurte grego e whey sabor chocolate/baunilha."
+  }
+];
 
 interface Refeicao {
   nome: string;
@@ -685,6 +727,104 @@ export default function PlanoNutricional() {
     localStorage.setItem("plano_nutricional_custom_v2", JSON.stringify(planoSemanal));
   }, [planoSemanal]);
 
+  // Links state with localStorage persistence
+  const [links, setLinks] = useState<LinkNutricional[]>(() => {
+    if (typeof window === "undefined") return DEFAULT_LINKS;
+    const salva = localStorage.getItem("plano_nutricional_links_v1");
+    if (!salva) return DEFAULT_LINKS;
+    try {
+      return JSON.parse(salva);
+    } catch {
+      return DEFAULT_LINKS;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("plano_nutricional_links_v1", JSON.stringify(links));
+  }, [links]);
+
+  // Form state for creating/editing links
+  const [novoLinkTitulo, setNovoLinkTitulo] = useState("");
+  const [novoLinkUrl, setNovoLinkUrl] = useState("");
+  const [novoLinkTipo, setNovoLinkTipo] = useState<"video" | "receita">("video");
+  const [novoLinkDescricao, setNovoLinkDescricao] = useState("");
+  const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
+  const [linkFilterTab, setLinkFilterTab] = useState<"todos" | "video" | "receita">("todos");
+
+  const handleSalvarLink = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novoLinkTitulo.trim() || !novoLinkUrl.trim()) {
+      alert("Por favor, preencha pelo menos o título e a URL do link.");
+      return;
+    }
+
+    let urlFormatada = novoLinkUrl.trim();
+    if (!urlFormatada.startsWith("http://") && !urlFormatada.startsWith("https://")) {
+      urlFormatada = `https://${urlFormatada}`;
+    }
+
+    if (editingLinkId) {
+      setLinks((prev) =>
+        prev.map((item) =>
+          item.id === editingLinkId
+            ? {
+                ...item,
+                titulo: novoLinkTitulo.trim(),
+                url: urlFormatada,
+                tipo: novoLinkTipo,
+                descricao: novoLinkDescricao.trim(),
+              }
+            : item
+        )
+      );
+      setEditingLinkId(null);
+    } else {
+      const novoItem: LinkNutricional = {
+        id: Date.now().toString(),
+        titulo: novoLinkTitulo.trim(),
+        url: urlFormatada,
+        tipo: novoLinkTipo,
+        descricao: novoLinkDescricao.trim(),
+      };
+      setLinks((prev) => [novoItem, ...prev]);
+    }
+
+    setNovoLinkTitulo("");
+    setNovoLinkUrl("");
+    setNovoLinkTipo("video");
+    setNovoLinkDescricao("");
+  };
+
+  const handleEditarLink = (item: LinkNutricional) => {
+    setEditingLinkId(item.id);
+    setNovoLinkTitulo(item.titulo);
+    setNovoLinkUrl(item.url);
+    setNovoLinkTipo(item.tipo);
+    setNovoLinkDescricao(item.descricao || "");
+  };
+
+  const handleCancelarEdicaoLink = () => {
+    setEditingLinkId(null);
+    setNovoLinkTitulo("");
+    setNovoLinkUrl("");
+    setNovoLinkTipo("video");
+    setNovoLinkDescricao("");
+  };
+
+  const handleDeletarLink = (id: string) => {
+    if (confirm("Tem certeza que deseja excluir este link da sua biblioteca?")) {
+      setLinks((prev) => prev.filter((item) => item.id !== id));
+      if (editingLinkId === id) {
+        handleCancelarEdicaoLink();
+      }
+    }
+  };
+
+  const filteredLinks = links.filter((item) => {
+    if (linkFilterTab === "todos") return true;
+    return item.tipo === linkFilterTab;
+  });
+
   const currentDia = planoSemanal[selectedDiaIdx];
 
   // Open editor for current day's meals
@@ -1043,6 +1183,217 @@ export default function PlanoNutricional() {
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Restaurar Cardápio Padrão Original</span>
             </button>
+          </div>
+
+          {/* BIBLIOTECA DE LINKS (VÍDEOS E RECEITAS) */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5" id="biblioteca-links-secao">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black text-slate-800 uppercase tracking-wider text-xs flex items-center gap-2">
+                <LinkIcon className="w-4 h-4 text-indigo-500" />
+                Biblioteca de Links
+              </h3>
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                {links.length} {links.length === 1 ? "item" : "itens"}
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed font-medium">
+              Adicione links de vídeos demonstrativos ou receitas na internet para acessar rapidamente quando precisar!
+            </p>
+
+            {/* FORMULÁRIO PARA ADICIONAR / EDITAR LINK */}
+            <form onSubmit={handleSalvarLink} className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider flex items-center gap-1">
+                  {editingLinkId ? <Pencil className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                  {editingLinkId ? "Editar Link Selecionado" : "Adicionar Novo Link"}
+                </span>
+                {editingLinkId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelarEdicaoLink}
+                    className="text-[10px] text-rose-500 hover:text-rose-700 font-bold underline cursor-pointer"
+                  >
+                    Cancelar Edição
+                  </button>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                  Título do Vídeo ou Receita *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Como Fazer Panqueca Proteica ou Receita Frango Fit"
+                  value={novoLinkTitulo}
+                  onChange={(e) => setNovoLinkTitulo(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 transition-all"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="sm:col-span-2">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                    Link da Internet (URL) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="https://youtube.com/watch?v=... ou site..."
+                    value={novoLinkUrl}
+                    onChange={(e) => setNovoLinkUrl(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium outline-none focus:border-indigo-500 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                    Categoria *
+                  </label>
+                  <select
+                    value={novoLinkTipo}
+                    onChange={(e) => setNovoLinkTipo(e.target.value as "video" | "receita")}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-xs font-bold text-slate-800 outline-none focus:border-indigo-500 cursor-pointer"
+                  >
+                    <option value="video">🎥 Vídeo</option>
+                    <option value="receita">🍳 Receita</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                  Observação / Dica (Opcional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Minuto 02:15 do vídeo ou Dica do molho"
+                  value={novoLinkDescricao}
+                  onChange={(e) => setNovoLinkDescricao(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-600 outline-none focus:border-indigo-500 transition-all"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-[#2E7D32] hover:bg-[#27682A] active:scale-[0.99] text-white py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md shadow-[#2E7D32]/20 cursor-pointer"
+              >
+                {editingLinkId ? <Save className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                <span>{editingLinkId ? "Salvar Alterações do Link" : "Salvar na Biblioteca"}</span>
+              </button>
+            </form>
+
+            {/* ABAS SEPARADORAS: VÍDEOS E RECEITAS */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setLinkFilterTab("todos")}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  linkFilterTab === "todos"
+                    ? "bg-white text-slate-800 shadow-xs"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                Todos ({links.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setLinkFilterTab("video")}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  linkFilterTab === "video"
+                    ? "bg-rose-600 text-white shadow-xs"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <Video className="w-3 h-3" />
+                Vídeos ({links.filter((l) => l.tipo === "video").length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setLinkFilterTab("receita")}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  linkFilterTab === "receita"
+                    ? "bg-[#2E7D32] text-white shadow-xs"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <Utensils className="w-3 h-3" />
+                Receitas ({links.filter((l) => l.tipo === "receita").length})
+              </button>
+            </div>
+
+            {/* LISTA DE LINKS FILTRADOS */}
+            <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
+              {filteredLinks.length === 0 ? (
+                <div className="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  <p className="text-xs text-slate-400 font-bold">Nenhum link cadastrado nesta categoria.</p>
+                </div>
+              ) : (
+                filteredLinks.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between gap-2 ${
+                      editingLinkId === item.id
+                        ? "bg-emerald-50/70 border-[#2E7D32] ring-2 ring-[#2E7D32]/20"
+                        : "bg-white border-slate-200 hover:border-slate-300 shadow-2xs"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded flex items-center gap-1 ${
+                              item.tipo === "video"
+                                ? "bg-rose-50 text-rose-600 border border-rose-200"
+                                : "bg-emerald-50 text-[#2E7D32] border border-emerald-200"
+                            }`}
+                          >
+                            {item.tipo === "video" ? <Video className="w-2.5 h-2.5" /> : <Utensils className="w-2.5 h-2.5" />}
+                            {item.tipo === "video" ? "Vídeo" : "Receita"}
+                          </span>
+                        </div>
+
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-bold text-slate-800 hover:text-[#1976D2] transition-colors flex items-center gap-1.5 group leading-tight pt-0.5"
+                        >
+                          <span className="group-hover:underline">{item.titulo}</span>
+                          <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-[#1976D2] shrink-0" />
+                        </a>
+
+                        {item.descricao && (
+                          <p className="text-[11px] text-slate-500 font-medium leading-snug">{item.descricao}</p>
+                        )}
+                      </div>
+
+                      {/* Ações de Edição e Exclusão */}
+                      <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => handleEditarLink(item)}
+                          title="Editar link"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#1976D2] hover:bg-sky-50 transition-colors cursor-pointer"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeletarLink(item.id)}
+                          title="Deletar link"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
         </div>
