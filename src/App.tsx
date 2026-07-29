@@ -21,6 +21,7 @@ import {
   ChevronRight,
   FileText,
   Lock,
+  LogOut,
   Ruler,
   Flame,
   Activity,
@@ -83,7 +84,35 @@ export default function App() {
     return () => clearInterval(interval);
   }, [appLiberado]);
 
+  const [toastNotice, setToastNotice] = useState<{ tipo: "sucesso" | "info"; mensagem: string } | null>(null);
+
+  useEffect(() => {
+    if (toastNotice) {
+      const timer = setTimeout(() => {
+        setToastNotice(null);
+      }, 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastNotice]);
+
   const handleBloquearApp = () => {
+    localStorage.removeItem("acesso_projeto");
+    localStorage.removeItem("acesso_app_temporario");
+    localStorage.removeItem("app_liberado");
+    localStorage.removeItem("bloqueio_acesso");
+    localStorage.removeItem("tentativas_acesso");
+    setAppLiberado(false);
+    setMobileMenuOpen(false);
+  };
+
+  const handleSairApp = () => {
+    // 1. Gera e salva o arquivo JSON de backup antes de sair
+    salvarJsonSnapshotAuto(appData);
+
+    // 2. Exibe confirmação explícita de que o arquivo JSON foi salvo no backup
+    alert("💾 Backup do arquivo JSON feito e salvo com sucesso!\n\nO aplicativo foi encerrado com segurança.");
+
+    // 3. Encerra a sessão e bloqueia o app
     localStorage.removeItem("acesso_projeto");
     localStorage.removeItem("acesso_app_temporario");
     localStorage.removeItem("app_liberado");
@@ -169,6 +198,15 @@ export default function App() {
     const resultado = restaurarJsonSnapshotAuto();
     if (resultado.success && resultado.appData) {
       setAppData(resultado.appData);
+      setToastNotice({
+        tipo: "sucesso",
+        mensagem: "💾 Arquivo JSON de backup restaurado com sucesso! O programa foi iniciado.",
+      });
+    } else {
+      setToastNotice({
+        tipo: "info",
+        mensagem: "🚀 Programa iniciado com sucesso!",
+      });
     }
     // 2. Inicia o programa
     setAppLiberado(true);
@@ -751,12 +789,50 @@ export default function App() {
               <PlusCircle className="w-4 h-4" />
               <span className="hidden sm:inline">Novo Registro</span>
             </button>
+            <button
+              onClick={handleSairApp}
+              title="Salvar backup JSON e Sair do Aplicativo"
+              className="bg-[#D32F2F] hover:bg-[#B71C1C] active:scale-[0.98] text-white px-3 md:px-4 py-1.5 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 shadow-md shadow-[#D32F2F]/20 cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Sair do App</span>
+            </button>
           </div>
         </header>
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto bg-[#F5F7FA] custom-scrollbar p-4 md:p-8">
           <div className="max-w-6xl mx-auto space-y-6">
+            
+            {/* Notification Toast for JSON backup/restore */}
+            <AnimatePresence>
+              {toastNotice && (
+                <motion.div
+                  initial={{ opacity: 0, y: -15, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -15, scale: 0.98 }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-[#E8F5E9] border border-[#2E7D32]/30 text-[#2E7D32] rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3 text-sm font-black"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-[#2E7D32] text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-[#2E7D32]/80 font-black">Automação de Backup JSON</p>
+                      <p className="text-xs sm:text-sm font-bold text-[#263238]">{toastNotice.mensagem}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setToastNotice(null)}
+                    className="p-1.5 hover:bg-[#2E7D32]/10 rounded-xl text-[#2E7D32] cursor-pointer transition-colors"
+                    title="Fechar notificação"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             {/* Quick alert helper for setting goals */}
             {(!appData.config.pesoInicial || !appData.config.metaPerda) && (
