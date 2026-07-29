@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, Clock } from "lucide-react";
+import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { motion } from "motion/react";
 
 interface TelaSenhaProps {
@@ -174,10 +174,6 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           <div className="flex items-center gap-2 text-[#263238]">
             <ShieldCheck className="w-4 h-4 text-[#2E7D32] shrink-0" />
             <span>Acesso exclusivo e intransferível</span>
-          </div>
-          <div className="flex items-center gap-2 text-[#263238]">
-            <Clock className="w-4 h-4 text-[#F57C00] shrink-0" />
-            <span>Sessão válida por 6 horas</span>
           </div>
         </div>
 
