@@ -8,6 +8,14 @@ export interface AppConfig {
   idade?: number; // Age
 }
 
+export interface MedidasCorporais {
+  cintura?: number; // cm
+  quadril?: number; // cm
+  braco?: number;   // cm
+  coxa?: number;    // cm
+  peito?: number;   // cm
+}
+
 export interface Registro {
   id: string;
   data: string; // YYYY-MM-DD
@@ -17,6 +25,7 @@ export interface Registro {
   obs: string;
   foto?: string; // Base64 encoded string of user uploaded photo
   fotos?: string[]; // Array of Base64 encoded strings
+  medidas?: MedidasCorporais;
 }
 
 export interface MedicamentoItem {

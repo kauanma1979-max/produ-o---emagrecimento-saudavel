@@ -1,9 +1,11 @@
 import { useState, FormEvent, DragEvent, ChangeEvent } from "react";
-import { PlusCircle, Camera, Image as ImageIcon, X, Loader2, Plus, Activity } from "lucide-react";
+import { PlusCircle, Camera, Image as ImageIcon, X, Loader2, Plus, Activity, Calculator } from "lucide-react";
 import { Registro } from "../types";
+import CalculoIMC from "./CalculoIMC";
 
 interface RegistroFormProps {
   onAddRegistro: (registro: Omit<Registro, "id">) => void;
+  onAplicarMeta?: (novaMetaPerda: number) => void;
 }
 
 // Client-side image compression and resizing helper
@@ -48,7 +50,7 @@ const compressImage = (file: File, maxWidth = 800, maxHeight = 800): Promise<str
   });
 };
 
-export default function RegistroForm({ onAddRegistro }: RegistroFormProps) {
+export default function RegistroForm({ onAddRegistro, onAplicarMeta }: RegistroFormProps) {
   const getTodayString = () => {
     const d = new Date();
     const year = d.getFullYear();
@@ -65,6 +67,7 @@ export default function RegistroForm({ onAddRegistro }: RegistroFormProps) {
   const [fotos, setFotos] = useState<string[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [showCalculoIMC, setShowCalculoIMC] = useState(false);
 
   const processFiles = async (files: FileList | File[]) => {
     const validFiles = Array.from(files).filter(file => file.type.startsWith("image/"));
@@ -139,11 +142,39 @@ export default function RegistroForm({ onAddRegistro }: RegistroFormProps) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-fit">
-      <h2 className="text-lg font-bold mb-4 text-slate-700 uppercase tracking-wider flex items-center">
-        <PlusCircle className="w-5 h-5 mr-2 text-indigo-500" />
-        Novo Registro
-      </h2>
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-fit space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-lg font-bold text-slate-700 uppercase tracking-wider flex items-center">
+          <PlusCircle className="w-5 h-5 mr-2 text-indigo-500" />
+          Novo Registro
+        </h2>
+        <button
+          type="button"
+          onClick={() => setShowCalculoIMC(!showCalculoIMC)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+            showCalculoIMC
+              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+              : "bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-indigo-100"
+          }`}
+        >
+          <Calculator className="w-3.5 h-3.5" />
+          <span>{showCalculoIMC ? "Ocultar IMC" : "Calcular IMC & Meta"}</span>
+        </button>
+      </div>
+
+      {showCalculoIMC && (
+        <div className="bg-slate-50 p-1 rounded-2xl border border-indigo-100 animate-fade-in mb-4">
+          <CalculoIMC
+            pesoInicialDefault={peso ? parseFloat(peso) : 80}
+            onAplicarMeta={(novaMeta) => {
+              if (onAplicarMeta) onAplicarMeta(novaMeta);
+              setShowCalculoIMC(false);
+            }}
+            inModal={true}
+          />
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>

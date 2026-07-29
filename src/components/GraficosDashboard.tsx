@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { LineChart as LucideLineChart, BarChart3, Activity } from "lucide-react";
+import { useMemo, useState } from "react";
+import { LineChart as LucideLineChart, BarChart3, Activity, Calculator } from "lucide-react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -13,12 +13,20 @@ import {
   ReferenceLine,
 } from "recharts";
 import { Registro } from "../types";
+import CalculoIMC from "./CalculoIMC";
 
 interface GraficosDashboardProps {
   registros: Registro[];
+  pesoInicial?: number;
+  onAplicarMeta?: (novaMetaPerda: number) => void;
 }
 
-export default function GraficosDashboard({ registros }: GraficosDashboardProps) {
+export default function GraficosDashboard({
+  registros,
+  pesoInicial = 80,
+  onAplicarMeta,
+}: GraficosDashboardProps) {
+  const [mostrarCalculadora, setMostrarCalculadora] = useState(false);
   // Process and sort records ascendingly by date (oldest to newest) for chronological progress
   const chartData = useMemo(() => {
     const sorted = [...registros].sort(
@@ -134,7 +142,45 @@ export default function GraficosDashboard({ registros }: GraficosDashboardProps)
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div className="space-y-6 mb-8">
+      {/* Banner/Header for Calculadora de IMC */}
+      <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+            <Calculator className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wider">
+              Diagnóstico de IMC & Meta Personalizada
+            </h3>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+              Calcule seu peso ideal e receba orientação de emagrecimento seguro
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMostrarCalculadora(!mostrarCalculadora)}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+            mostrarCalculadora
+              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+              : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
+          }`}
+        >
+          {mostrarCalculadora ? "Ocultar Calculadora" : "Abrir Calculadora IMC"}
+        </button>
+      </div>
+
+      {mostrarCalculadora && (
+        <CalculoIMC
+          pesoInicialDefault={weightChartData.length > 0 ? weightChartData[weightChartData.length - 1].peso : pesoInicial}
+          onAplicarMeta={onAplicarMeta}
+          inModal={false}
+        />
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {/* Chart 1: Progresso de Peso */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
         <h2 className="text-lg font-bold mb-4 text-slate-700 uppercase tracking-wider flex items-center">
@@ -298,6 +344,7 @@ export default function GraficosDashboard({ registros }: GraficosDashboardProps)
             </ResponsiveContainer>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

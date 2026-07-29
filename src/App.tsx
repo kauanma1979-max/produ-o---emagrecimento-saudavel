@@ -20,7 +20,8 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
-  Lock
+  Lock,
+  Ruler
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ConfigPerfil from "./components/ConfigPerfil";
@@ -34,6 +35,8 @@ import MedicamentosCard from "./components/MedicamentosCard";
 import PlanoNutricional from "./components/PlanoNutricional";
 import RelatorioPDFView from "./components/RelatorioPDFView";
 import TelaSenha from "./components/TelaSenha";
+import ControleAguaCard from "./components/ControleAguaCard";
+import AbaEvolucaoMedidas from "./components/AbaEvolucaoMedidas";
 import { AppData, AppConfig, Registro, MedicamentoItem } from "./types";
 
 export default function App() {
@@ -259,6 +262,10 @@ export default function App() {
     }));
   };
 
+  const handleAplicarMeta = (novaMetaPerda: number) => {
+    handleConfigChange("metaPerda", novaMetaPerda);
+  };
+
   // Filter registrations based on search term (date or observations)
   const filteredRegistros = appData.registros.filter((reg) => {
     if (!searchTerm) return true;
@@ -309,6 +316,18 @@ export default function App() {
         >
           <LayoutDashboard className="w-4 h-4" />
           <span>Dashboard Principal</span>
+        </button>
+
+        <button
+          onClick={() => { setActiveTab("evolucao"); setMobileMenuOpen(false); }}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+            activeTab === "evolucao"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+          }`}
+        >
+          <Ruler className="w-4 h-4" />
+          <span>Evolução & Medidas</span>
         </button>
 
         <button
@@ -606,7 +625,19 @@ export default function App() {
               </motion.div>
             )}
 
-            {activeTab === "injecoes" ? (
+            {activeTab === "evolucao" ? (
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-6"
+              >
+                <AbaEvolucaoMedidas
+                  registros={appData.registros}
+                  onAddRegistro={handleAddRegistro}
+                  onDeleteRegistro={handleDeleteRegistro}
+                />
+              </motion.div>
+            ) : activeTab === "injecoes" ? (
               <motion.div 
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -657,21 +688,33 @@ export default function App() {
                   onOpenConfigModal={() => setShowPerfilModal(true)}
                 />
 
-                {/* Stats row */}
-                <div className="grid grid-cols-1 gap-6">
-                  <DashboardStatus
-                    config={appData.config}
-                    registros={appData.registros}
-                  />
+                {/* Stats row & Water Tracker */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <DashboardStatus
+                      config={appData.config}
+                      registros={appData.registros}
+                    />
+                  </div>
+                  <div>
+                    <ControleAguaCard pesoAtual={appData.config.pesoInicial} />
+                  </div>
                 </div>
 
                 {/* Charts row */}
-                <GraficosDashboard registros={appData.registros} />
+                <GraficosDashboard
+                  registros={appData.registros}
+                  pesoInicial={appData.config.pesoInicial}
+                  onAplicarMeta={handleAplicarMeta}
+                />
 
                 {/* Grid for actions & history */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div id="registro-form-card" className="transition-all duration-300 rounded-2xl">
-                    <RegistroForm onAddRegistro={handleAddRegistro} />
+                    <RegistroForm
+                      onAddRegistro={handleAddRegistro}
+                      onAplicarMeta={handleAplicarMeta}
+                    />
                   </div>
                   <HistoricoTabela
                     registros={filteredRegistros}
