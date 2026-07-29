@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, Clock, Sparkles } from "lucide-react";
+import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, Clock } from "lucide-react";
 import { motion } from "motion/react";
 
 interface TelaSenhaProps {
@@ -178,10 +178,6 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           <div className="flex items-center gap-2 text-[#263238]">
             <Clock className="w-4 h-4 text-[#F57C00] shrink-0" />
             <span>Sessão válida por 6 horas</span>
-          </div>
-          <div className="flex items-center gap-2 text-[#1976D2] bg-[#E3F2FD] p-2 rounded-xl border border-[#1976D2]/20 font-semibold text-[11px]">
-            <Sparkles className="w-4 h-4 text-[#1976D2] shrink-0" />
-            <span>Automação Ativa: Carrega o JSON salvo e inicia o programa após a validação</span>
           </div>
         </div>
 
