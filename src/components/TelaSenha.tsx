@@ -10,10 +10,10 @@ interface TelaSenhaProps {
 export const CONFIG = {
   MAX_TENTATIVAS: 3,
   TEMPO_BLOQUEIO: 600000, // 10 minutos em ms
-  CHAVE_ACESSO: "acesso_final_v1",
-  CHAVE_TENTATIVAS: "tentativas_final_v1",
-  CHAVE_BLOQUEIO: "bloqueio_final_v1",
-  CHAVE_SELO_USO: "senhas_usadas_final_v1",
+  CHAVE_ACESSO: "acesso_seguro_v2",
+  CHAVE_TENTATIVAS: "tentativas_seguro_v2",
+  CHAVE_BLOQUEIO: "bloqueio_seguro_v2",
+  CHAVE_SELO_USO: "SENHAS_USADAS_V2",
   CHAVE_SECRETA: "projetoemagrecimento2026vercelsumare2026",
 };
 
@@ -238,7 +238,7 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
         verificarBloqueio();
       } else {
         setMensagem({
-          texto: "Senha inválida ou já utilizada",
+          texto: "Senha inválida ou já utilizada/expirada",
           tipo: "erro",
         });
       }
