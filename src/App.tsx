@@ -40,7 +40,7 @@ import RastreadorInjecaoCard from "./components/RastreadorInjecaoCard";
 import MedicamentosCard from "./components/MedicamentosCard";
 import PlanoNutricional from "./components/PlanoNutricional";
 import RelatorioPDFView from "./components/RelatorioPDFView";
-import TelaSenha from "./components/TelaSenha";
+import TelaSenha, { CONFIG, gerarIdDispositivo } from "./components/TelaSenha";
 import AbaEvolucaoMedidas from "./components/AbaEvolucaoMedidas";
 import AtividadeFisicaTab from "./components/AtividadeFisicaTab";
 import { AppData, AppConfig, Registro, MedicamentoItem } from "./types";
@@ -48,12 +48,33 @@ import { salvarJsonSnapshotAuto, restaurarJsonSnapshotAuto } from "./utils/autoB
 
 export default function App() {
   const verificarSessaoAtiva = (): boolean => {
-    const TEMPO_VALIDADE = 6 * 60 * 60 * 1000; // 6 horas em milissegundos
-    const dados = localStorage.getItem("acesso_projeto") || localStorage.getItem("acesso_app_temporario");
-
-    if (dados) {
+    // 1. Checa a nova chave v2 com vínculo ao dispositivo e validade customizada
+    const rawV2 = localStorage.getItem(CONFIG.CHAVE_ACESSO);
+    if (rawV2) {
       try {
-        const parsed = JSON.parse(dados);
+        const dados = JSON.parse(rawV2);
+        const idAtual = gerarIdDispositivo();
+        if (dados.dispositivo && dados.dispositivo !== idAtual) {
+          localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+          return false;
+        }
+        if (dados.inicio && dados.validade && Date.now() - dados.inicio > dados.validade) {
+          localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+          return false;
+        }
+        return true;
+      } catch {
+        localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+      }
+    }
+
+    // 2. Fallback para chaves anteriores
+    const TEMPO_VALIDADE = 6 * 60 * 60 * 1000;
+    const dadosAntigos = localStorage.getItem("acesso_projeto") || localStorage.getItem("acesso_app_temporario");
+
+    if (dadosAntigos) {
+      try {
+        const parsed = JSON.parse(dadosAntigos);
         const liberado = parsed.liberado;
         const data = parsed.data || parsed.dataLiberacao;
         const agora = Date.now();
@@ -61,35 +82,60 @@ export default function App() {
           return true;
         }
       } catch {
-        // Ignora e cai no fallback
+        // Ignora
       }
-      localStorage.removeItem("acesso_projeto");
-      localStorage.removeItem("acesso_app_temporario");
-      localStorage.removeItem("app_liberado");
-      return false;
     }
 
     return localStorage.getItem("app_liberado") === "sim";
   };
 
   const [appLiberado, setAppLiberado] = useState<boolean>(() => verificarSessaoAtiva());
+  const [tempoRestanteTexto, setTempoRestanteTexto] = useState<string>("");
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const atualizarTempo = () => {
       const ativa = verificarSessaoAtiva();
       if (!ativa && appLiberado) {
         setAppLiberado(false);
+        setTempoRestanteTexto("");
+        return;
       }
-    }, 10000); // Checa a cada 10 segundos
+
+      const rawV2 = localStorage.getItem(CONFIG.CHAVE_ACESSO);
+      if (rawV2) {
+        try {
+          const dados = JSON.parse(rawV2);
+          if (dados.inicio && dados.validade) {
+            const restante = dados.validade - (Date.now() - dados.inicio);
+            if (restante <= 0) {
+              setAppLiberado(false);
+              setTempoRestanteTexto("");
+              return;
+            }
+            const h = Math.floor(restante / 3600000);
+            const m = Math.floor((restante % 3600000) / 60000);
+            setTempoRestanteTexto(`⏱️ Acesso válido por: ${h}h e ${m}min`);
+            return;
+          }
+        } catch {
+          // Ignora
+        }
+      }
+      setTempoRestanteTexto("");
+    };
+
+    atualizarTempo();
+    const interval = setInterval(atualizarTempo, 15000);
     return () => clearInterval(interval);
   }, [appLiberado]);
 
   const handleBloquearApp = () => {
+    localStorage.removeItem(CONFIG.CHAVE_ACESSO);
     localStorage.removeItem("acesso_projeto");
     localStorage.removeItem("acesso_app_temporario");
     localStorage.removeItem("app_liberado");
-    localStorage.removeItem("bloqueio_acesso");
-    localStorage.removeItem("tentativas_acesso");
+    localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
+    localStorage.removeItem(CONFIG.CHAVE_TENTATIVAS);
     setAppLiberado(false);
     setMobileMenuOpen(false);
   };
@@ -752,6 +798,11 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {tempoRestanteTexto && (
+              <div id="tempo-restante" className="tempo-restante hidden sm:flex items-center gap-1.5 px-3 py-1 bg-[#E8F5E9] text-[#2E7D32] border border-[#2E7D32]/20 rounded-xl text-xs font-bold shadow-2xs">
+                <span>{tempoRestanteTexto}</span>
+              </div>
+            )}
             <button
               onClick={handleBloquearApp}
               title="Bloquear aplicativo e exigir senha"

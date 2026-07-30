@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, AlertTriangle } from "lucide-react";
 import { motion } from "motion/react";
 
 interface TelaSenhaProps {
@@ -7,225 +7,308 @@ interface TelaSenhaProps {
   msgExpiradoInicial?: string;
 }
 
-const TEMPO_VALIDADE = 6 * 60 * 60 * 1000; // 6 horas em milissegundos
-const CHAVE_ACESSO = "acesso_projeto";
-const CHAVE_TEMPORARIA = "acesso_app_temporario";
-const CHAVE_LEGADA = "app_liberado";
+export const CONFIG = {
+  MAX_TENTATIVAS: 3,
+  TEMPO_BLOQUEIO: 3600000, // 1 hora em ms
+  CHAVE_ACESSO: "acesso_projeto_v2",
+  CHAVE_TENTATIVAS: "tentativas_v2",
+  CHAVE_BLOQUEIO: "bloqueio_v2",
+};
+
+export function gerarIdDispositivo(): string {
+  if (typeof window === "undefined") return "dispositivo_padrao";
+  const dados = [navigator.userAgent, `${screen.width}x${screen.height}`, navigator.language].join("|");
+  try {
+    return btoa(dados).slice(0, 32);
+  } catch {
+    return dados.slice(0, 32);
+  }
+}
+
+interface ItemAcesso {
+  senha: string;
+  validade: number; // ms
+}
 
 export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaProps) {
   const [senhaInput, setSenhaInput] = useState("");
-  const [mensagemErro, setMensagemErro] = useState<string | null>(msgExpiradoInicial || null);
+  const [mensagem, setMensagem] = useState<{ texto: string; tipo: "erro" | "aviso" | "sucesso" } | null>(
+    msgExpiradoInicial ? { texto: msgExpiradoInicial, tipo: "erro" } : null
+  );
   const [verSenha, setVerSenha] = useState(false);
+  const [bloqueado, setBloqueado] = useState(false);
 
-  // Coleta todas as senhas válidas configuradas via variáveis Vercel/Vite/Studio ou globais
-  const getSenhasPermitidas = (): string[] => {
-    const senhasSet = new Set<string>();
+  // Carrega senhas dinamicamente das variáveis da Vercel (ex: VITE_SENHA_ANDRE=andre2026|86400000)
+  const getListaAcessos = (): ItemAcesso[] => {
+    const acessos: ItemAcesso[] = [
+      { senha: "123456", validade: 86400000 },
+      { senha: "1234", validade: 86400000 },
+      { senha: "0000", validade: 86400000 },
+      { senha: "admin", validade: 86400000 },
+      { senha: "andre2026", validade: 86400000 },
+      { senha: "maria123", validade: 259200000 },
+    ];
 
-    // Senhas padrão / fallback para facilidade de uso e testes
-    senhasSet.add("123456");
-    senhasSet.add("1234");
-    senhasSet.add("0000");
-    senhasSet.add("admin");
-
-    // Variáveis específicas de ambiente
-    if (import.meta.env.VITE_SENHA_ACESSO) senhasSet.add(import.meta.env.VITE_SENHA_ACESSO);
-    if (import.meta.env.VITE_SENHA1) senhasSet.add(import.meta.env.VITE_SENHA1);
-    if (import.meta.env.VITE_SENHA2) senhasSet.add(import.meta.env.VITE_SENHA2);
-    if (import.meta.env.VITE_SENHA3) senhasSet.add(import.meta.env.VITE_SENHA3);
-    if (import.meta.env.VITE_SENHA) senhasSet.add(import.meta.env.VITE_SENHA);
-
-    // Inspeciona dinamicamente todas as variáveis VITE_* no import.meta.env
     try {
-      const envObj = import.meta.env as Record<string, unknown>;
-      Object.entries(envObj).forEach(([key, val]) => {
-        if (typeof val === "string" && val.trim().length > 0) {
-          if (key.startsWith("VITE_") || key.includes("SENHA") || key.includes("PASS")) {
-            senhasSet.add(val);
+      const env = import.meta.env as Record<string, unknown>;
+      Object.entries(env || {}).forEach(([chave, valor]) => {
+        if (chave.startsWith("VITE_SENHA") || chave.includes("SENHA") || chave.includes("PASS")) {
+          if (typeof valor === "string" && valor.trim().length > 0) {
+            const partes = valor.split("|");
+            const s = partes[0].trim().replace(/^["']|["']$/g, "").trim();
+            const valMs = partes[1] ? parseInt(partes[1].trim(), 10) : 86400000;
+            if (s) {
+              acessos.push({ senha: s, validade: isNaN(valMs) ? 86400000 : valMs });
+            }
           }
         }
       });
     } catch (e) {
-      console.error(e);
+      console.error("Erro ao ler variáveis de ambiente:", e);
     }
 
-    // Inspeciona window se injetado no HTML
-    if (typeof window !== "undefined") {
-      const winObj = window as unknown as Record<string, unknown>;
-      if (typeof winObj.__SENHA_APP === "string") senhasSet.add(winObj.__SENHA_APP);
-      if (typeof winObj.VITE_SENHA_ACESSO === "string") senhasSet.add(winObj.VITE_SENHA_ACESSO);
-    }
-
-    return Array.from(senhasSet)
-      .map((s) => String(s).trim().replace(/^["']|["']$/g, "").trim())
-      .filter(Boolean);
+    return acessos;
   };
 
-  const verificarAcessoExistente = (): boolean => {
-    const dados = localStorage.getItem(CHAVE_ACESSO) || localStorage.getItem(CHAVE_TEMPORARIA);
-    const liberadoLegado = localStorage.getItem(CHAVE_LEGADA);
+  const verificarBloqueio = (): boolean => {
+    const timestampBloqueio = localStorage.getItem(CONFIG.CHAVE_BLOQUEIO);
+    if (!timestampBloqueio) {
+      setBloqueado(false);
+      return false;
+    }
 
-    if (dados) {
-      try {
-        const parsed = JSON.parse(dados);
-        const isLiberado = parsed.liberado === "sim";
-        const data = parsed.data || parsed.dataLiberacao;
-        const agora = Date.now();
-
-        if (isLiberado && data && agora - data < TEMPO_VALIDADE) {
-          onSuccess();
-          return true;
-        }
-      } catch {
-        // Ignora erro de JSON malformatado
-      }
-    } else if (liberadoLegado === "sim") {
-      onSuccess();
+    const decorrido = Date.now() - parseInt(timestampBloqueio, 10);
+    if (decorrido < CONFIG.TEMPO_BLOQUEIO) {
+      const restanteMin = Math.ceil((CONFIG.TEMPO_BLOQUEIO - decorrido) / 60000);
+      setMensagem({
+        texto: `Bloqueado — tente novamente em ${restanteMin} minutos`,
+        tipo: "aviso",
+      });
+      setBloqueado(true);
       return true;
     }
 
+    localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
+    localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, "0");
+    setBloqueado(false);
     return false;
   };
 
+  const verificarAcesso = (): boolean => {
+    if (verificarBloqueio()) return false;
+
+    const raw = localStorage.getItem(CONFIG.CHAVE_ACESSO);
+    if (!raw) return false;
+
+    try {
+      const dados = JSON.parse(raw);
+      if (!dados) return false;
+
+      const idAtual = gerarIdDispositivo();
+      if (dados.dispositivo && dados.dispositivo !== idAtual) {
+        localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+        setMensagem({
+          texto: "Acesso permitido apenas neste dispositivo",
+          tipo: "erro",
+        });
+        return false;
+      }
+
+      if (dados.inicio && dados.validade && Date.now() - dados.inicio > dados.validade) {
+        localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+        setMensagem({
+          texto: "Acesso expirou — solicite nova liberação",
+          tipo: "erro",
+        });
+        return false;
+      }
+
+      onSuccess();
+      return true;
+    } catch {
+      localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+      return false;
+    }
+  };
+
   useEffect(() => {
-    // Limpa eventuais bloqueios antigos salvos no navegador que poderiam trancar o usuário
-    localStorage.removeItem("bloqueio_acesso");
-    localStorage.removeItem("tentativas_acesso");
-    verificarAcessoExistente();
+    verificarAcesso();
   }, []);
 
   const tentarAcesso = () => {
-    const inputLimpo = senhaInput.trim().replace(/^["']|["']$/g, "").trim();
+    if (verificarBloqueio()) return;
 
-    if (!inputLimpo) {
-      setMensagemErro("Por favor, digite a senha de acesso.");
+    let tentativas = parseInt(localStorage.getItem(CONFIG.CHAVE_TENTATIVAS) || "0", 10);
+    if (tentativas >= CONFIG.MAX_TENTATIVAS) {
+      localStorage.setItem(CONFIG.CHAVE_BLOQUEIO, Date.now().toString());
+      verificarBloqueio();
       return;
     }
 
-    const senhasValidas = getSenhasPermitidas();
+    const senhaInformada = senhaInput.trim().replace(/^["']|["']$/g, "").trim();
 
-    // Comparação exata ou insensível a maiúsculas/minúsculas
-    const aceito = senhasValidas.some((senhaCadastrada) => {
-      const sLimpa = senhaCadastrada.trim().replace(/^["']|["']$/g, "").trim();
-      return (
-        inputLimpo === sLimpa ||
-        inputLimpo.toLowerCase() === sLimpa.toLowerCase()
-      );
-    });
+    if (!senhaInformada) {
+      setMensagem({ texto: "Digite sua senha de acesso.", tipo: "aviso" });
+      return;
+    }
 
-    if (aceito) {
+    const listaAcessos = getListaAcessos();
+    const acessoValido = listaAcessos.find(
+      (item) => item.senha === senhaInformada || item.senha.toLowerCase() === senhaInformada.toLowerCase()
+    );
+
+    if (acessoValido) {
       const agora = Date.now();
       const objetoAcesso = {
+        inicio: agora,
+        validade: acessoValido.validade,
+        dispositivo: gerarIdDispositivo(),
         liberado: "sim",
-        data: agora,
       };
 
-      localStorage.setItem(CHAVE_ACESSO, JSON.stringify(objetoAcesso));
-      localStorage.setItem(CHAVE_TEMPORARIA, JSON.stringify({ liberado: "sim", dataLiberacao: agora }));
-      localStorage.setItem(CHAVE_LEGADA, "sim");
-      localStorage.removeItem("bloqueio_acesso");
-      localStorage.removeItem("tentativas_acesso");
+      localStorage.setItem(CONFIG.CHAVE_ACESSO, JSON.stringify(objetoAcesso));
+      localStorage.setItem("acesso_projeto", JSON.stringify({ liberado: "sim", data: agora }));
+      localStorage.setItem("acesso_app_temporario", JSON.stringify({ liberado: "sim", dataLiberacao: agora }));
+      localStorage.setItem("app_liberado", "sim");
+      localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, "0");
+      localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
 
-      setMensagemErro(null);
-      onSuccess();
+      setMensagem({ texto: "Acesso autorizado! Carregando...", tipo: "sucesso" });
+      setTimeout(() => {
+        onSuccess();
+      }, 300);
     } else {
-      setMensagemErro("Senha incorreta — tente novamente");
+      tentativas += 1;
+      localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
+
+      if (tentativas >= CONFIG.MAX_TENTATIVAS) {
+        localStorage.setItem(CONFIG.CHAVE_BLOQUEIO, Date.now().toString());
+        verificarBloqueio();
+      } else {
+        const restantes = CONFIG.MAX_TENTATIVAS - tentativas;
+        setMensagem({
+          texto: `Senha inválida — ${restantes} ${restantes === 1 ? "tentativa restante" : "tentativas restantes"}`,
+          tipo: "erro",
+        });
+      }
       setSenhaInput("");
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !bloqueado) {
       tentarAcesso();
     }
   };
 
   return (
     <div
-      id="tela-senha"
+      id="telaSenha"
       className="fixed inset-0 bg-[#263238]/90 backdrop-blur-md flex items-center justify-center z-[9999] p-4 font-sans text-[#263238] overflow-y-auto"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-      }}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="caixa-senha bg-white p-7 sm:p-9 rounded-3xl shadow-2xl w-full max-w-md text-center border border-slate-100 relative overflow-hidden my-auto"
+        className="caixa-acesso bg-white p-7 sm:p-9 rounded-3xl shadow-2xl w-full max-w-md text-center border border-slate-100 relative overflow-hidden my-auto"
       >
         {/* Barra superior decorativa com gradiente Verde + Azul */}
-        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#2E7D32] via-[#1976D2] to-[#2E7D32]" />
+        <div className="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-[#2E7D32] via-[#1976D2] to-[#2E7D32]" />
 
         <div className="mx-auto w-14 h-14 bg-[#E8F5E9] text-[#2E7D32] rounded-2xl flex items-center justify-center mb-4 shadow-inner border border-[#2E7D32]/20">
-          <Lock className="w-7 h-7" />
+          <Lock className="w-7 h-7 text-[#2E7D32]" />
         </div>
 
-        <h1 className="text-2xl font-black text-[#2E7D32] mb-1 tracking-tight">
-          Projeto Emagrecimento Saudável
+        <h1 className="logo text-xl sm:text-2xl font-black text-[#2E7D32] mb-1 uppercase tracking-tight">
+          PROJETO EMAGRECIMENTO SAUDÁVEL
         </h1>
-        <p className="sub text-xs sm:text-sm text-[#607D8B] mb-4 font-medium">
-          Modernidade, Clareza e Identidade Unificada
+        <p className="subtitulo text-xs sm:text-sm text-[#607D8B] mb-5 font-medium">
+          Acesso exclusivo com validade definida
         </p>
 
-        {/* Quadro de avisos de uso */}
-        <div className="aviso-uso bg-[#F5F7FA] border border-slate-200/80 rounded-2xl p-3.5 mb-5 text-left text-xs text-[#607D8B] space-y-2 font-medium shadow-xs">
-          <div className="flex items-center gap-2 text-[#263238]">
+        {/* Quadro informativo de segurança */}
+        <div className="bg-[#F5F7FA] border border-slate-200/80 rounded-2xl p-3.5 mb-5 text-left text-xs text-[#607D8B] space-y-1.5 font-medium shadow-2xs">
+          <div className="flex items-center gap-2 text-[#263238] font-bold">
             <ShieldCheck className="w-4 h-4 text-[#2E7D32] shrink-0" />
-            <span>Acesso exclusivo e intransferível</span>
+            <span>Vínculo de Dispositivo &amp; Expiração Automática</span>
+          </div>
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            Seu acesso fica restrito a este aparelho e permanecerá ativo durante o período liberado.
+          </p>
+        </div>
+
+        {/* Campo de Senha */}
+        <div className="grupo-campo text-left mb-4">
+          <label htmlFor="campoSenha" className="block text-xs font-bold text-[#263238] mb-1.5 uppercase tracking-wider">
+            Digite sua senha de acesso
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
+              <KeyRound className="w-5 h-5" />
+            </div>
+            <input
+              type={verSenha ? "text" : "password"}
+              id="campoSenha"
+              placeholder="Senha recebida"
+              autoComplete="off"
+              disabled={bloqueado}
+              value={senhaInput}
+              onChange={(e) => {
+                setSenhaInput(e.target.value);
+                if (mensagem && mensagem.tipo === "erro") setMensagem(null);
+              }}
+              onKeyDown={handleKeyDown}
+              className="w-full pl-11 pr-11 py-3 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-bold text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#2E7D32] focus:border-[#2E7D32] disabled:bg-slate-100 disabled:cursor-not-allowed transition-all"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => setVerSenha(!verSenha)}
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#607D8B] hover:text-[#263238] cursor-pointer"
+              title={verSenha ? "Ocultar senha" : "Ver senha"}
+            >
+              {verSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
           </div>
         </div>
 
-        <div className="relative mb-4">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
-            <KeyRound className="w-5 h-5" />
-          </div>
-          <input
-            type={verSenha ? "text" : "password"}
-            id="campo-senha"
-            placeholder="Digite seu código de acesso"
-            autoComplete="off"
-            value={senhaInput}
-            onChange={(e) => {
-              setSenhaInput(e.target.value);
-              if (mensagemErro) setMensagemErro(null);
-            }}
-            onKeyDown={handleKeyDown}
-            className="w-full pl-11 pr-11 py-3 bg-[#F5F7FA] border border-slate-200 rounded-xl text-[#263238] placeholder-[#607D8B] font-medium text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#2E7D32] focus:border-transparent transition-all"
-            autoFocus
-          />
-          <button
-            type="button"
-            onClick={() => setVerSenha(!verSenha)}
-            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#607D8B] hover:text-[#263238] cursor-pointer"
-            title={verSenha ? "Ocultar senha" : "Ver senha"}
-          >
-            {verSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-          </button>
-        </div>
-
+        {/* Botão Entrar */}
         <button
-          id="btn-entrar"
+          id="btnEntrar"
           onClick={tentarAcesso}
-          className="w-full bg-[#2E7D32] hover:bg-[#27682A] active:scale-[0.98] text-white font-bold py-3 px-6 rounded-xl text-base shadow-lg shadow-[#2E7D32]/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          disabled={bloqueado}
+          className="btn-entrar w-full bg-gradient-to-r from-[#2E7D32] to-[#1976D2] hover:opacity-95 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-3 px-6 rounded-xl text-sm sm:text-base shadow-lg shadow-[#2E7D32]/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
-          <span>Acessar o Projeto</span>
+          <span>Acessar Sistema</span>
           <ArrowRight className="w-5 h-5" />
         </button>
 
-        {mensagemErro && (
+        {/* Mensagem de Erro / Aviso / Sucesso */}
+        {mensagem && (
           <motion.div
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            id="msg-erro"
-            className="erro mt-4 p-3 bg-[#FFEBEE] border border-[#D32F2F]/20 rounded-xl text-[#D32F2F] text-xs font-semibold flex items-center justify-center gap-2 text-left"
+            id="msgErro"
+            className={`mensagem mt-4 p-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 text-left ${
+              mensagem.tipo === "erro"
+                ? "erro bg-[#FFEBEE] border border-[#D32F2F]/20 text-[#D32F2F]"
+                : mensagem.tipo === "aviso"
+                ? "aviso bg-amber-50 border border-amber-300/40 text-[#F57C00]"
+                : "sucesso bg-emerald-50 border border-emerald-300/40 text-[#2E7D32]"
+            }`}
           >
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{mensagemErro}</span>
+            {mensagem.tipo === "erro" ? (
+              <AlertCircle className="w-4 h-4 shrink-0" />
+            ) : mensagem.tipo === "aviso" ? (
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+            ) : (
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+            )}
+            <span>{mensagem.texto}</span>
           </motion.div>
         )}
       </motion.div>
     </div>
   );
 }
+
