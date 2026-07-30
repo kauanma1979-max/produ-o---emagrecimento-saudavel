@@ -10,19 +10,33 @@ interface TelaSenhaProps {
 export const CONFIG = {
   MAX_TENTATIVAS: 3,
   TEMPO_BLOQUEIO: 3600000, // 1 hora em ms
-  CHAVE_ACESSO: "acesso_projeto_v3",
-  CHAVE_TENTATIVAS: "tentativas_v3",
-  CHAVE_BLOQUEIO: "bloqueio_v3",
-  CHAVE_SENHAS_USADAS: "senhas_usadas_v3",
+  CHAVE_ACESSO: "acesso_projeto_v4",
+  CHAVE_TENTATIVAS: "tentativas_v4",
+  CHAVE_BLOQUEIO: "bloqueio_v4",
+  CHAVE_SENHAS_USADAS: "senhas_usadas_v4",
+  CHAVE_SELO_USO: "selo_unico_senha_v4",
 };
 
 export function gerarIdDispositivo(): string {
   if (typeof window === "undefined") return "dispositivo_padrao";
-  const dados = [navigator.userAgent, `${screen.width}x${screen.height}`, navigator.language].join("|");
+  const dados = [
+    navigator.userAgent,
+    `${screen.width}x${screen.height}`,
+    navigator.language,
+    navigator.platform || "",
+  ].join("|");
   try {
-    return btoa(dados).slice(0, 32);
+    return btoa(dados).replace(/=/g, "").slice(0, 40);
   } catch {
-    return dados.slice(0, 32);
+    return dados.slice(0, 40);
+  }
+}
+
+export function gerarSelo(senha: string, dispositivo: string, validadeMs: number): string {
+  try {
+    return btoa(`${senha}||${dispositivo}||${Date.now() + validadeMs}`).replace(/=/g, "");
+  } catch {
+    return `${senha}||${dispositivo}||${Date.now() + validadeMs}`;
   }
 }
 
@@ -31,7 +45,6 @@ export function marcarSenhaUsada(senha: string, validadeMs: number) {
   if (!senha) return;
   try {
     const usadas = JSON.parse(localStorage.getItem(CONFIG.CHAVE_SENHAS_USADAS) || "{}");
-    // Se a senha ainda não foi marcada como usada ou se reativa, define o vencimento
     if (!usadas[senha]) {
       usadas[senha] = Date.now() + validadeMs;
       localStorage.setItem(CONFIG.CHAVE_SENHAS_USADAS, JSON.stringify(usadas));
@@ -41,7 +54,32 @@ export function marcarSenhaUsada(senha: string, validadeMs: number) {
   }
 }
 
-// Verifica se senha já expirou
+// Verifica se a senha já foi utilizada em outro dispositivo
+export function senhaJaUtilizadaEmOutroLugar(senha: string): boolean {
+  if (typeof window === "undefined" || !senha) return false;
+  try {
+    const selos = JSON.parse(localStorage.getItem(CONFIG.CHAVE_SELO_USO) || "{}");
+    const sLimpa = senha.trim().toLowerCase();
+    const regKey = Object.keys(selos).find((k) => k.trim().toLowerCase() === sLimpa);
+
+    if (!regKey || !selos[regKey]) return false;
+
+    const idAtual = gerarIdDispositivo();
+    let dados: string[] = [];
+    try {
+      dados = atob(selos[regKey]).split("||");
+    } catch {
+      dados = selos[regKey].split("||");
+    }
+
+    const dispositivoOriginal = dados[1];
+    return dispositivoOriginal !== idAtual;
+  } catch {
+    return false;
+  }
+}
+
+// Verifica se a senha já expirou
 export function senhaJaExpirou(senha: string): boolean {
   if (!senha) return false;
   const sLimpa = senha.trim().toLowerCase();
@@ -50,7 +88,22 @@ export function senhaJaExpirou(senha: string): boolean {
     const usadas = JSON.parse(localStorage.getItem(CONFIG.CHAVE_SENHAS_USADAS) || "{}");
     const regKey = Object.keys(usadas).find((k) => k.trim().toLowerCase() === sLimpa);
     if (regKey && usadas[regKey]) {
-      return Date.now() > usadas[regKey];
+      if (Date.now() > usadas[regKey]) return true;
+    }
+
+    const selos = JSON.parse(localStorage.getItem(CONFIG.CHAVE_SELO_USO) || "{}");
+    const seloKey = Object.keys(selos).find((k) => k.trim().toLowerCase() === sLimpa);
+    if (seloKey && selos[seloKey]) {
+      let dados: string[] = [];
+      try {
+        dados = atob(selos[seloKey]).split("||");
+      } catch {
+        dados = selos[seloKey].split("||");
+      }
+      const expiraTimestamp = parseInt(dados[2], 10);
+      if (!isNaN(expiraTimestamp) && Date.now() > expiraTimestamp) {
+        return true;
+      }
     }
   } catch {
     // ignore
@@ -137,7 +190,7 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
       if (dados.dispositivo && dados.dispositivo !== idAtual) {
         localStorage.removeItem(CONFIG.CHAVE_ACESSO);
         setMensagem({
-          texto: "Acesso permitido apenas neste dispositivo",
+          texto: "Acesso só permitido no aparelho original",
           tipo: "erro",
         });
         return false;
@@ -193,7 +246,19 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
       (item) => item.senha === senhaInformada || item.senha.toLowerCase() === senhaInformada.toLowerCase()
     );
 
-    // 🚫 A PRINCIPAL CORREÇÃO: Se a senha já foi usada e expirou, NÃO ACEITA MAIS
+    // 1ª Verificação: já foi utilizada em outro lugar?
+    if (acessoValido && senhaJaUtilizadaEmOutroLugar(senhaInformada)) {
+      tentativas += 1;
+      localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
+      setMensagem({
+        texto: "Senha já utilizada em outro dispositivo — bloqueada",
+        tipo: "erro",
+      });
+      setSenhaInput("");
+      return;
+    }
+
+    // 2ª Verificação: já expirou?
     if (acessoValido && senhaJaExpirou(senhaInformada)) {
       tentativas += 1;
       localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
@@ -206,6 +271,12 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
     }
 
     if (acessoValido) {
+      const idDispositivo = gerarIdDispositivo();
+      const selo = gerarSelo(senhaInformada, idDispositivo, acessoValido.validade);
+      const selos = JSON.parse(localStorage.getItem(CONFIG.CHAVE_SELO_USO) || "{}");
+      selos[senhaInformada] = selo;
+      localStorage.setItem(CONFIG.CHAVE_SELO_USO, JSON.stringify(selos));
+
       // ✅ Marca a senha com o prazo total de validade no primeiro uso
       marcarSenhaUsada(senhaInformada, acessoValido.validade);
 
@@ -213,7 +284,7 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
       const objetoAcesso = {
         inicio: agora,
         validade: acessoValido.validade,
-        dispositivo: gerarIdDispositivo(),
+        dispositivo: idDispositivo,
         senha: senhaInformada,
         liberado: "sim",
       };

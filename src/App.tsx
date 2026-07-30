@@ -48,11 +48,11 @@ import { salvarJsonSnapshotAuto, restaurarJsonSnapshotAuto } from "./utils/autoB
 
 export default function App() {
   const verificarSessaoAtiva = (): boolean => {
-    // 1. Checa a chave v3 com vínculo ao dispositivo, validade e controle de senhas usadas
-    const rawV3 = localStorage.getItem(CONFIG.CHAVE_ACESSO);
-    if (rawV3) {
+    // 1. Checa a chave v4 com vínculo ao dispositivo, validade e selo único por senha
+    const rawV4 = localStorage.getItem(CONFIG.CHAVE_ACESSO);
+    if (rawV4) {
       try {
-        const dados = JSON.parse(rawV3);
+        const dados = JSON.parse(rawV4);
         const idAtual = gerarIdDispositivo();
         if (dados.dispositivo && dados.dispositivo !== idAtual) {
           localStorage.removeItem(CONFIG.CHAVE_ACESSO);
