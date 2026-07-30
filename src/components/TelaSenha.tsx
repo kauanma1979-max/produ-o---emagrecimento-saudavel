@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, AlertTriangle, Key } from "lucide-react";
+import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, AlertTriangle } from "lucide-react";
 import { motion } from "motion/react";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 interface TelaSenhaProps {
   onSuccess: () => void;
   msgExpiradoInicial?: string;
 }
+
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || "").trim();
+const SUPABASE_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
+
+export const supabase: SupabaseClient | null =
+  SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 export const CONFIG = {
   MAX_TENTATIVAS: 3,
@@ -30,6 +37,10 @@ export function gerarIdDispositivo(): string {
   } catch {
     return dados.slice(0, 40);
   }
+}
+
+export function gerarIdAparelho(): string {
+  return gerarIdDispositivo();
 }
 
 export function gerarAssinatura(texto: string, chave: string): string {
@@ -129,7 +140,7 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
   const [bloqueado, setBloqueado] = useState(false);
 
   const verificarBloqueio = (): boolean => {
-    const timestampBloqueio = localStorage.getItem(CONFIG.CHAVE_BLOQUEIO);
+    const timestampBloqueio = localStorage.getItem("bloq") || localStorage.getItem(CONFIG.CHAVE_BLOQUEIO);
     if (!timestampBloqueio) {
       setBloqueado(false);
       return false;
@@ -146,122 +157,254 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
       return true;
     }
 
+    localStorage.removeItem("bloq");
     localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
+    localStorage.setItem("tent", "0");
     localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, "0");
     setBloqueado(false);
     return false;
   };
 
-  const verificarAcesso = (): boolean => {
+  const verificarAcesso = async (): Promise<boolean> => {
     if (verificarBloqueio()) return false;
 
-    const raw = localStorage.getItem(CONFIG.CHAVE_ACESSO);
-    if (!raw) return false;
+    const rawOk = localStorage.getItem("acesso_ok");
+    const rawAcesso = localStorage.getItem(CONFIG.CHAVE_ACESSO);
 
-    try {
-      const dados = JSON.parse(raw);
-      if (!dados) return false;
-
-      // 🔑 REGRA DE ADMINISTRADOR: VALIDADE INFINITA E LIVRE DE DISPOSITIVO
-      if (dados.validade === 0) {
-        onSuccess();
-        return true;
+    let senhaSalva = "";
+    if (rawOk) {
+      try {
+        const parsed = JSON.parse(rawOk);
+        senhaSalva = parsed?.senha || "";
+      } catch {
+        senhaSalva = rawOk;
       }
-
-      // 👤 REGRA DE USUÁRIO COMUM: DISPOSITIVO E TEMPO
-      const idAtual = gerarIdDispositivo();
-      if (dados.dispositivo && dados.dispositivo !== idAtual) {
-        localStorage.removeItem(CONFIG.CHAVE_ACESSO);
-        setMensagem({
-          texto: "Acesso só permitido no aparelho original",
-          tipo: "erro",
-        });
-        return false;
-      }
-
-      if (dados.inicio && dados.validade && Date.now() - dados.inicio > dados.validade) {
-        if (dados.senhaUsada || dados.senha) {
-          marcarSenhaComoUsada(dados.senhaUsada || dados.senha);
-        }
-        localStorage.removeItem(CONFIG.CHAVE_ACESSO);
-        localStorage.removeItem("acesso_projeto");
-        localStorage.removeItem("acesso_app_temporario");
-        localStorage.removeItem("app_liberado");
-
-        setMensagem({
-          texto: "Acesso expirou — solicite nova liberação",
-          tipo: "erro",
-        });
-        return false;
-      }
-
-      onSuccess();
-      return true;
-    } catch {
-      localStorage.removeItem(CONFIG.CHAVE_ACESSO);
-      return false;
     }
+    if (!senhaSalva && rawAcesso) {
+      try {
+        const parsed = JSON.parse(rawAcesso);
+        senhaSalva = parsed?.senhaUsada || parsed?.senha || "";
+      } catch {}
+    }
+
+    if (senhaSalva && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from("senhas_acesso")
+          .select("*")
+          .eq("senha", senhaSalva)
+          .maybeSingle();
+
+        if (!error && data) {
+          if (data.usado && data.tipo !== "admin") {
+            localStorage.removeItem("acesso_ok");
+            localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+            setMensagem({ texto: "Senha já utilizada", tipo: "erro" });
+            return false;
+          }
+
+          if (data.valido_ate && Date.now() > data.valido_ate && data.tipo !== "admin") {
+            localStorage.removeItem("acesso_ok");
+            localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+            setMensagem({ texto: "Acesso expirou", tipo: "erro" });
+            return false;
+          }
+
+          if (data.dispositivo_vinculado && data.dispositivo_vinculado !== gerarIdAparelho() && data.tipo !== "admin") {
+            localStorage.removeItem("acesso_ok");
+            localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+            setMensagem({ texto: "Acesso só permitido no aparelho original", tipo: "erro" });
+            return false;
+          }
+
+          onSuccess();
+          return true;
+        }
+      } catch (err) {
+        console.warn("Consulta Supabase ao verificar acesso:", err);
+      }
+    }
+
+    if (rawAcesso) {
+      try {
+        const dados = JSON.parse(rawAcesso);
+        if (dados) {
+          if (dados.validade === 0) {
+            onSuccess();
+            return true;
+          }
+
+          const idAtual = gerarIdDispositivo();
+          if (dados.dispositivo && dados.dispositivo !== idAtual) {
+            localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+            setMensagem({ texto: "Acesso só permitido no aparelho original", tipo: "erro" });
+            return false;
+          }
+
+          if (dados.inicio && dados.validade && Date.now() - dados.inicio > dados.validade) {
+            marcarSenhaComoUsada(dados.senhaUsada || dados.senha);
+            localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+            localStorage.removeItem("acesso_ok");
+            setMensagem({ texto: "Acesso expirou — solicite nova liberação", tipo: "erro" });
+            return false;
+          }
+
+          onSuccess();
+          return true;
+        }
+      } catch {
+        localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+      }
+    }
+
+    return false;
   };
 
   useEffect(() => {
     verificarAcesso();
   }, []);
 
-  const tentarAcesso = () => {
+  const tentarAcesso = async () => {
     if (verificarBloqueio()) return;
 
-    let tentativas = parseInt(localStorage.getItem(CONFIG.CHAVE_TENTATIVAS) || "0", 10);
+    let tentativas = parseInt(
+      localStorage.getItem("tent") || localStorage.getItem(CONFIG.CHAVE_TENTATIVAS) || "0",
+      10
+    );
     if (tentativas >= CONFIG.MAX_TENTATIVAS) {
+      localStorage.setItem("bloq", Date.now().toString());
       localStorage.setItem(CONFIG.CHAVE_BLOQUEIO, Date.now().toString());
       verificarBloqueio();
       return;
     }
 
-    const senhaInformada = senhaInput.trim().replace(/^["']|["']$/g, "").trim();
+    const senha = senhaInput.trim().replace(/^["']|["']$/g, "").trim();
 
-    if (!senhaInformada) {
+    if (!senha) {
       setMensagem({ texto: "Digite sua senha de acesso.", tipo: "aviso" });
       return;
     }
 
+    // 1. TENTA PRIMEIRO VIA SUPABASE
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from("senhas_acesso")
+          .select("*")
+          .eq("senha", senha)
+          .maybeSingle();
+
+        if (!error && data) {
+          if (data.usado && data.tipo !== "admin") {
+            tentativas++;
+            localStorage.setItem("tent", tentativas.toString());
+            localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
+            setMensagem({ texto: "Senha já utilizada", tipo: "erro" });
+            setSenhaInput("");
+            return;
+          }
+
+          if (data.valido_ate && Date.now() > data.valido_ate && data.tipo !== "admin") {
+            tentativas++;
+            localStorage.setItem("tent", tentativas.toString());
+            localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
+            setMensagem({ texto: "Senha expirou", tipo: "erro" });
+            setSenhaInput("");
+            return;
+          }
+
+          if (data.dispositivo_vinculado && data.dispositivo_vinculado !== gerarIdAparelho() && data.tipo !== "admin") {
+            tentativas++;
+            localStorage.setItem("tent", tentativas.toString());
+            localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
+            setMensagem({ texto: "Acesso só permitido no aparelho original", tipo: "erro" });
+            setSenhaInput("");
+            return;
+          }
+
+          // Marca como usada e vincula aparelho no banco se não for admin
+          if (data.tipo !== "admin") {
+            await supabase
+              .from("senhas_acesso")
+              .update({
+                usado: true,
+                dispositivo_vinculado: gerarIdAparelho(),
+              })
+              .eq("senha", senha);
+          }
+
+          localStorage.setItem("acesso_ok", JSON.stringify({ senha }));
+          localStorage.setItem(
+            CONFIG.CHAVE_ACESSO,
+            JSON.stringify({
+              inicio: Date.now(),
+              validade: data.tipo === "admin" ? 0 : (data.valido_ate ? Math.max(0, data.valido_ate - Date.now()) : 86400000),
+              dispositivo: data.tipo === "admin" ? "ADMIN_LIVRE" : gerarIdAparelho(),
+              senhaUsada: senha,
+              senha: senha,
+              liberado: "sim",
+              tipo: data.tipo,
+            })
+          );
+          localStorage.setItem("tent", "0");
+          localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, "0");
+          localStorage.removeItem("bloq");
+          localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
+
+          setMensagem({
+            texto: data.tipo === "admin" ? "Acesso de Administrador Autorizado!" : "Acesso autorizado! Carregando...",
+            tipo: "sucesso",
+          });
+
+          setTimeout(() => {
+            onSuccess();
+          }, 300);
+          return;
+        }
+      } catch (err) {
+        console.warn("Erro ao consultar Supabase, usando validação local:", err);
+      }
+    }
+
+    // 2. FALLBACK PARA VALIDAÇÃO DE SENHAS LOCAIS (ADMIN E ENVS)
     const lista = carregarSenhasValidas();
     const acesso = lista.find(
-      (item) => item.senha === senhaInformada || item.senha.toLowerCase() === senhaInformada.toLowerCase()
+      (item) => item.senha === senha || item.senha.toLowerCase() === senha.toLowerCase()
     );
 
     if (!acesso) {
-      tentativas += 1;
+      tentativas++;
+      localStorage.setItem("tent", tentativas.toString());
       localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
 
       if (tentativas >= CONFIG.MAX_TENTATIVAS) {
+        localStorage.setItem("bloq", Date.now().toString());
         localStorage.setItem(CONFIG.CHAVE_BLOQUEIO, Date.now().toString());
         verificarBloqueio();
       } else {
-        setMensagem({
-          texto: "Senha inválida ou já utilizada/expirada",
-          tipo: "erro",
-        });
+        setMensagem({ texto: "Senha inválida ou já utilizada/expirada", tipo: "erro" });
       }
       setSenhaInput("");
       return;
     }
 
-    // 🔑 REGRA ESPECIAL: ADMINISTRADOR (validade === 0)
+    // REGRA DE ADMINISTRADOR LOCAL
     if (acesso.validade === 0) {
-      const objetoAcesso = {
-        inicio: Date.now(),
-        validade: 0,
-        dispositivo: "ADMIN_LIVRE",
-        senhaUsada: acesso.senha,
-        senha: acesso.senha,
-        liberado: "sim",
-      };
-
-      localStorage.setItem(CONFIG.CHAVE_ACESSO, JSON.stringify(objetoAcesso));
-      localStorage.setItem("acesso_projeto", JSON.stringify({ liberado: "sim", data: Date.now() }));
-      localStorage.setItem("acesso_app_temporario", JSON.stringify({ liberado: "sim", dataLiberacao: Date.now() }));
-      localStorage.setItem("app_liberado", "sim");
+      localStorage.setItem("acesso_ok", JSON.stringify({ senha: acesso.senha }));
+      localStorage.setItem(
+        CONFIG.CHAVE_ACESSO,
+        JSON.stringify({
+          inicio: Date.now(),
+          validade: 0,
+          dispositivo: "ADMIN_LIVRE",
+          senhaUsada: acesso.senha,
+          senha: acesso.senha,
+          liberado: "sim",
+        })
+      );
+      localStorage.setItem("tent", "0");
       localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, "0");
+      localStorage.removeItem("bloq");
       localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
 
       setMensagem({ texto: "Acesso de Administrador Autorizado!", tipo: "sucesso" });
@@ -271,26 +414,26 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
       return;
     }
 
-    // 👤 REGRA PARA USUÁRIOS COMUNS (validade > 0)
-    // Marca como usada para sempre
+    // REGRA DE USUÁRIO COMUM LOCAL
     marcarSenhaComoUsada(acesso.senha);
-
     const agora = Date.now();
-    const idDispositivo = gerarIdDispositivo();
-    const objetoAcesso = {
-      inicio: agora,
-      validade: acesso.validade,
-      dispositivo: idDispositivo,
-      senhaUsada: acesso.senha,
-      senha: acesso.senha,
-      liberado: "sim",
-    };
+    const idDispositivo = gerarIdAparelho();
 
-    localStorage.setItem(CONFIG.CHAVE_ACESSO, JSON.stringify(objetoAcesso));
-    localStorage.setItem("acesso_projeto", JSON.stringify({ liberado: "sim", data: agora }));
-    localStorage.setItem("acesso_app_temporario", JSON.stringify({ liberado: "sim", dataLiberacao: agora }));
-    localStorage.setItem("app_liberado", "sim");
+    localStorage.setItem("acesso_ok", JSON.stringify({ senha: acesso.senha }));
+    localStorage.setItem(
+      CONFIG.CHAVE_ACESSO,
+      JSON.stringify({
+        inicio: agora,
+        validade: acesso.validade,
+        dispositivo: idDispositivo,
+        senhaUsada: acesso.senha,
+        senha: acesso.senha,
+        liberado: "sim",
+      })
+    );
+    localStorage.setItem("tent", "0");
     localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, "0");
+    localStorage.removeItem("bloq");
     localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
 
     setMensagem({ texto: "Acesso autorizado! Carregando...", tipo: "sucesso" });
