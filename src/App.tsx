@@ -40,7 +40,7 @@ import RastreadorInjecaoCard from "./components/RastreadorInjecaoCard";
 import MedicamentosCard from "./components/MedicamentosCard";
 import PlanoNutricional from "./components/PlanoNutricional";
 import RelatorioPDFView from "./components/RelatorioPDFView";
-import TelaSenha, { CONFIG, gerarIdDispositivo } from "./components/TelaSenha";
+import TelaSenha, { CONFIG, gerarIdDispositivo, marcarSenhaUsada } from "./components/TelaSenha";
 import AbaEvolucaoMedidas from "./components/AbaEvolucaoMedidas";
 import AtividadeFisicaTab from "./components/AtividadeFisicaTab";
 import { AppData, AppConfig, Registro, MedicamentoItem } from "./types";
@@ -48,18 +48,24 @@ import { salvarJsonSnapshotAuto, restaurarJsonSnapshotAuto } from "./utils/autoB
 
 export default function App() {
   const verificarSessaoAtiva = (): boolean => {
-    // 1. Checa a nova chave v2 com vínculo ao dispositivo e validade customizada
-    const rawV2 = localStorage.getItem(CONFIG.CHAVE_ACESSO);
-    if (rawV2) {
+    // 1. Checa a chave v3 com vínculo ao dispositivo, validade e controle de senhas usadas
+    const rawV3 = localStorage.getItem(CONFIG.CHAVE_ACESSO);
+    if (rawV3) {
       try {
-        const dados = JSON.parse(rawV2);
+        const dados = JSON.parse(rawV3);
         const idAtual = gerarIdDispositivo();
         if (dados.dispositivo && dados.dispositivo !== idAtual) {
           localStorage.removeItem(CONFIG.CHAVE_ACESSO);
           return false;
         }
         if (dados.inicio && dados.validade && Date.now() - dados.inicio > dados.validade) {
+          if (dados.senha) {
+            marcarSenhaUsada(dados.senha, dados.validade);
+          }
           localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+          localStorage.removeItem("acesso_projeto");
+          localStorage.removeItem("acesso_app_temporario");
+          localStorage.removeItem("app_liberado");
           return false;
         }
         return true;

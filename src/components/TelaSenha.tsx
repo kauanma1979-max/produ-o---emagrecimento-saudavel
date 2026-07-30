@@ -10,9 +10,10 @@ interface TelaSenhaProps {
 export const CONFIG = {
   MAX_TENTATIVAS: 3,
   TEMPO_BLOQUEIO: 3600000, // 1 hora em ms
-  CHAVE_ACESSO: "acesso_projeto_v2",
-  CHAVE_TENTATIVAS: "tentativas_v2",
-  CHAVE_BLOQUEIO: "bloqueio_v2",
+  CHAVE_ACESSO: "acesso_projeto_v3",
+  CHAVE_TENTATIVAS: "tentativas_v3",
+  CHAVE_BLOQUEIO: "bloqueio_v3",
+  CHAVE_SENHAS_USADAS: "senhas_usadas_v3",
 };
 
 export function gerarIdDispositivo(): string {
@@ -23,6 +24,39 @@ export function gerarIdDispositivo(): string {
   } catch {
     return dados.slice(0, 32);
   }
+}
+
+// Marca senha como usada com data de validade (timestamp exato do fim da validade)
+export function marcarSenhaUsada(senha: string, validadeMs: number) {
+  if (!senha) return;
+  try {
+    const usadas = JSON.parse(localStorage.getItem(CONFIG.CHAVE_SENHAS_USADAS) || "{}");
+    // Se a senha ainda não foi marcada como usada ou se reativa, define o vencimento
+    if (!usadas[senha]) {
+      usadas[senha] = Date.now() + validadeMs;
+      localStorage.setItem(CONFIG.CHAVE_SENHAS_USADAS, JSON.stringify(usadas));
+    }
+  } catch (e) {
+    console.error("Erro ao marcar senha usada:", e);
+  }
+}
+
+// Verifica se senha já expirou
+export function senhaJaExpirou(senha: string): boolean {
+  if (!senha) return false;
+  const sLimpa = senha.trim().toLowerCase();
+
+  try {
+    const usadas = JSON.parse(localStorage.getItem(CONFIG.CHAVE_SENHAS_USADAS) || "{}");
+    const regKey = Object.keys(usadas).find((k) => k.trim().toLowerCase() === sLimpa);
+    if (regKey && usadas[regKey]) {
+      return Date.now() > usadas[regKey];
+    }
+  } catch {
+    // ignore
+  }
+
+  return false;
 }
 
 interface ItemAcesso {
@@ -110,7 +144,14 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
       }
 
       if (dados.inicio && dados.validade && Date.now() - dados.inicio > dados.validade) {
+        if (dados.senha) {
+          marcarSenhaUsada(dados.senha, dados.validade);
+        }
         localStorage.removeItem(CONFIG.CHAVE_ACESSO);
+        localStorage.removeItem("acesso_projeto");
+        localStorage.removeItem("acesso_app_temporario");
+        localStorage.removeItem("app_liberado");
+
         setMensagem({
           texto: "Acesso expirou — solicite nova liberação",
           tipo: "erro",
@@ -152,12 +193,28 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
       (item) => item.senha === senhaInformada || item.senha.toLowerCase() === senhaInformada.toLowerCase()
     );
 
+    // 🚫 A PRINCIPAL CORREÇÃO: Se a senha já foi usada e expirou, NÃO ACEITA MAIS
+    if (acessoValido && senhaJaExpirou(senhaInformada)) {
+      tentativas += 1;
+      localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
+      setMensagem({
+        texto: "Esta senha já expirou — solicite uma nova",
+        tipo: "erro",
+      });
+      setSenhaInput("");
+      return;
+    }
+
     if (acessoValido) {
+      // ✅ Marca a senha com o prazo total de validade no primeiro uso
+      marcarSenhaUsada(senhaInformada, acessoValido.validade);
+
       const agora = Date.now();
       const objetoAcesso = {
         inicio: agora,
         validade: acessoValido.validade,
         dispositivo: gerarIdDispositivo(),
+        senha: senhaInformada,
         liberado: "sim",
       };
 
