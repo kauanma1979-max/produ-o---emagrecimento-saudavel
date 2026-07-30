@@ -9,7 +9,7 @@ interface TelaSenhaProps {
 
 export const CONFIG = {
   MAX_TENTATIVAS: 3,
-  TEMPO_BLOQUEIO: 3600000, // 1 hora em ms
+  TEMPO_BLOQUEIO: 600000, // 10 minutos em ms
   CHAVE_ACESSO: "acesso_projeto_v4",
   CHAVE_TENTATIVAS: "tentativas_v4",
   CHAVE_BLOQUEIO: "bloqueio_v4",
