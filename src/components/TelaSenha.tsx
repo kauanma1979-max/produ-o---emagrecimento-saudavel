@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, AlertTriangle, Key } from "lucide-react";
 import { motion } from "motion/react";
 
 interface TelaSenhaProps {
@@ -10,11 +10,11 @@ interface TelaSenhaProps {
 export const CONFIG = {
   MAX_TENTATIVAS: 3,
   TEMPO_BLOQUEIO: 600000, // 10 minutos em ms
-  CHAVE_ACESSO: "acesso_projeto_v4",
-  CHAVE_TENTATIVAS: "tentativas_v4",
-  CHAVE_BLOQUEIO: "bloqueio_v4",
-  CHAVE_SENHAS_USADAS: "senhas_usadas_v4",
-  CHAVE_SELO_USO: "selo_unico_senha_v4",
+  CHAVE_ACESSO: "acesso_final_v1",
+  CHAVE_TENTATIVAS: "tentativas_final_v1",
+  CHAVE_BLOQUEIO: "bloqueio_final_v1",
+  CHAVE_SELO_USO: "senhas_usadas_final_v1",
+  CHAVE_SECRETA: "projetoemagrecimento2026vercelsumare2026",
 };
 
 export function gerarIdDispositivo(): string {
@@ -32,89 +32,92 @@ export function gerarIdDispositivo(): string {
   }
 }
 
-export function gerarSelo(senha: string, dispositivo: string, validadeMs: number): string {
+export function gerarAssinatura(texto: string, chave: string): string {
+  let saida = "";
+  for (let i = 0; i < texto.length; i++) {
+    saida += String.fromCharCode(texto.charCodeAt(i) + chave.charCodeAt(i % chave.length));
+  }
   try {
-    return btoa(`${senha}||${dispositivo}||${Date.now() + validadeMs}`).replace(/=/g, "");
+    return btoa(saida).replace(/=/g, "").slice(0, 20);
   } catch {
-    return `${senha}||${dispositivo}||${Date.now() + validadeMs}`;
+    return "";
   }
 }
 
-// Marca senha como usada com data de validade (timestamp exato do fim da validade)
-export function marcarSenhaUsada(senha: string, validadeMs: number) {
+export interface ItemAcesso {
+  senha: string;
+  validade: number; // ms (0 = Admin Infinito)
+  valida?: boolean;
+}
+
+export function carregarSenhasValidas(): ItemAcesso[] {
+  let usadas: string[] = [];
+  try {
+    const rawUsadas = localStorage.getItem(CONFIG.CHAVE_SELO_USO);
+    if (rawUsadas) {
+      usadas = JSON.parse(rawUsadas);
+    }
+  } catch {
+    usadas = [];
+  }
+
+  // Senha padrão 12726658 com acesso de Administrador Infinito (validade: 0)
+  const lista: ItemAcesso[] = [
+    { senha: "12726658", validade: 0, valida: true },
+  ];
+
+  try {
+    const env = import.meta.env as Record<string, unknown>;
+    Object.entries(env || {}).forEach(([chave, valor]) => {
+      if (chave.startsWith("VITE_SENHA") || chave.includes("SENHA") || chave.includes("PASS")) {
+        if (typeof valor === "string" && valor.trim().length > 0) {
+          const partes = valor.split("|");
+          const s = partes[0]?.trim().replace(/^["']|["']$/g, "").trim();
+          const valMs = partes[1] !== undefined ? parseInt(partes[1].trim(), 10) : 86400000;
+          const assinatura = partes[2]?.trim();
+
+          if (s) {
+            let ehValida = true;
+            if (assinatura) {
+              const gerada = gerarAssinatura(`${s}|${valMs}`, CONFIG.CHAVE_SECRETA);
+              ehValida = (assinatura === gerada);
+            }
+            if (ehValida) {
+              lista.push({
+                senha: s,
+                validade: isNaN(valMs) ? 86400000 : valMs,
+                valida: true,
+              });
+            }
+          }
+        }
+      }
+    });
+  } catch (e) {
+    console.error("Erro ao carregar senhas de ambiente:", e);
+  }
+
+  // Filtra senhas válidas e exclui senhas comuns que já foram usadas
+  return lista.filter((item) => {
+    if (!item.valida) return false;
+    if (item.validade === 0) return true; // Admin livre
+    return !usadas.includes(item.senha);
+  });
+}
+
+// Marca senha comum como usada para sempre
+export function marcarSenhaComoUsada(senha: string) {
   if (!senha) return;
   try {
-    const usadas = JSON.parse(localStorage.getItem(CONFIG.CHAVE_SENHAS_USADAS) || "{}");
-    if (!usadas[senha]) {
-      usadas[senha] = Date.now() + validadeMs;
-      localStorage.setItem(CONFIG.CHAVE_SENHAS_USADAS, JSON.stringify(usadas));
+    const raw = localStorage.getItem(CONFIG.CHAVE_SELO_USO);
+    const usadas: string[] = raw ? JSON.parse(raw) : [];
+    if (!usadas.includes(senha)) {
+      usadas.push(senha);
+      localStorage.setItem(CONFIG.CHAVE_SELO_USO, JSON.stringify(usadas));
     }
   } catch (e) {
     console.error("Erro ao marcar senha usada:", e);
   }
-}
-
-// Verifica se a senha já foi utilizada em outro dispositivo
-export function senhaJaUtilizadaEmOutroLugar(senha: string): boolean {
-  if (typeof window === "undefined" || !senha) return false;
-  try {
-    const selos = JSON.parse(localStorage.getItem(CONFIG.CHAVE_SELO_USO) || "{}");
-    const sLimpa = senha.trim().toLowerCase();
-    const regKey = Object.keys(selos).find((k) => k.trim().toLowerCase() === sLimpa);
-
-    if (!regKey || !selos[regKey]) return false;
-
-    const idAtual = gerarIdDispositivo();
-    let dados: string[] = [];
-    try {
-      dados = atob(selos[regKey]).split("||");
-    } catch {
-      dados = selos[regKey].split("||");
-    }
-
-    const dispositivoOriginal = dados[1];
-    return dispositivoOriginal !== idAtual;
-  } catch {
-    return false;
-  }
-}
-
-// Verifica se a senha já expirou
-export function senhaJaExpirou(senha: string): boolean {
-  if (!senha) return false;
-  const sLimpa = senha.trim().toLowerCase();
-
-  try {
-    const usadas = JSON.parse(localStorage.getItem(CONFIG.CHAVE_SENHAS_USADAS) || "{}");
-    const regKey = Object.keys(usadas).find((k) => k.trim().toLowerCase() === sLimpa);
-    if (regKey && usadas[regKey]) {
-      if (Date.now() > usadas[regKey]) return true;
-    }
-
-    const selos = JSON.parse(localStorage.getItem(CONFIG.CHAVE_SELO_USO) || "{}");
-    const seloKey = Object.keys(selos).find((k) => k.trim().toLowerCase() === sLimpa);
-    if (seloKey && selos[seloKey]) {
-      let dados: string[] = [];
-      try {
-        dados = atob(selos[seloKey]).split("||");
-      } catch {
-        dados = selos[seloKey].split("||");
-      }
-      const expiraTimestamp = parseInt(dados[2], 10);
-      if (!isNaN(expiraTimestamp) && Date.now() > expiraTimestamp) {
-        return true;
-      }
-    }
-  } catch {
-    // ignore
-  }
-
-  return false;
-}
-
-interface ItemAcesso {
-  senha: string;
-  validade: number; // ms
 }
 
 export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaProps) {
@@ -124,33 +127,6 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
   );
   const [verSenha, setVerSenha] = useState(false);
   const [bloqueado, setBloqueado] = useState(false);
-
-  // Carrega senhas dinamicamente das variáveis da Vercel (ex: VITE_SENHA_ANDRE=andre2026|86400000)
-  const getListaAcessos = (): ItemAcesso[] => {
-    const acessos: ItemAcesso[] = [
-      { senha: "12726658", validade: 86400000 },
-    ];
-
-    try {
-      const env = import.meta.env as Record<string, unknown>;
-      Object.entries(env || {}).forEach(([chave, valor]) => {
-        if (chave.startsWith("VITE_SENHA") || chave.includes("SENHA") || chave.includes("PASS")) {
-          if (typeof valor === "string" && valor.trim().length > 0) {
-            const partes = valor.split("|");
-            const s = partes[0].trim().replace(/^["']|["']$/g, "").trim();
-            const valMs = partes[1] ? parseInt(partes[1].trim(), 10) : 86400000;
-            if (s) {
-              acessos.push({ senha: s, validade: isNaN(valMs) ? 86400000 : valMs });
-            }
-          }
-        }
-      });
-    } catch (e) {
-      console.error("Erro ao ler variáveis de ambiente:", e);
-    }
-
-    return acessos;
-  };
 
   const verificarBloqueio = (): boolean => {
     const timestampBloqueio = localStorage.getItem(CONFIG.CHAVE_BLOQUEIO);
@@ -186,6 +162,13 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
       const dados = JSON.parse(raw);
       if (!dados) return false;
 
+      // 🔑 REGRA DE ADMINISTRADOR: VALIDADE INFINITA E LIVRE DE DISPOSITIVO
+      if (dados.validade === 0) {
+        onSuccess();
+        return true;
+      }
+
+      // 👤 REGRA DE USUÁRIO COMUM: DISPOSITIVO E TEMPO
       const idAtual = gerarIdDispositivo();
       if (dados.dispositivo && dados.dispositivo !== idAtual) {
         localStorage.removeItem(CONFIG.CHAVE_ACESSO);
@@ -197,8 +180,8 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
       }
 
       if (dados.inicio && dados.validade && Date.now() - dados.inicio > dados.validade) {
-        if (dados.senha) {
-          marcarSenhaUsada(dados.senha, dados.validade);
+        if (dados.senhaUsada || dados.senha) {
+          marcarSenhaComoUsada(dados.senhaUsada || dados.senha);
         }
         localStorage.removeItem(CONFIG.CHAVE_ACESSO);
         localStorage.removeItem("acesso_projeto");
@@ -241,66 +224,12 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
       return;
     }
 
-    const listaAcessos = getListaAcessos();
-    const acessoValido = listaAcessos.find(
+    const lista = carregarSenhasValidas();
+    const acesso = lista.find(
       (item) => item.senha === senhaInformada || item.senha.toLowerCase() === senhaInformada.toLowerCase()
     );
 
-    // 1ª Verificação: já foi utilizada em outro lugar?
-    if (acessoValido && senhaJaUtilizadaEmOutroLugar(senhaInformada)) {
-      tentativas += 1;
-      localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
-      setMensagem({
-        texto: "Senha já utilizada em outro dispositivo — bloqueada",
-        tipo: "erro",
-      });
-      setSenhaInput("");
-      return;
-    }
-
-    // 2ª Verificação: já expirou?
-    if (acessoValido && senhaJaExpirou(senhaInformada)) {
-      tentativas += 1;
-      localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
-      setMensagem({
-        texto: "Esta senha já expirou — solicite uma nova",
-        tipo: "erro",
-      });
-      setSenhaInput("");
-      return;
-    }
-
-    if (acessoValido) {
-      const idDispositivo = gerarIdDispositivo();
-      const selo = gerarSelo(senhaInformada, idDispositivo, acessoValido.validade);
-      const selos = JSON.parse(localStorage.getItem(CONFIG.CHAVE_SELO_USO) || "{}");
-      selos[senhaInformada] = selo;
-      localStorage.setItem(CONFIG.CHAVE_SELO_USO, JSON.stringify(selos));
-
-      // ✅ Marca a senha com o prazo total de validade no primeiro uso
-      marcarSenhaUsada(senhaInformada, acessoValido.validade);
-
-      const agora = Date.now();
-      const objetoAcesso = {
-        inicio: agora,
-        validade: acessoValido.validade,
-        dispositivo: idDispositivo,
-        senha: senhaInformada,
-        liberado: "sim",
-      };
-
-      localStorage.setItem(CONFIG.CHAVE_ACESSO, JSON.stringify(objetoAcesso));
-      localStorage.setItem("acesso_projeto", JSON.stringify({ liberado: "sim", data: agora }));
-      localStorage.setItem("acesso_app_temporario", JSON.stringify({ liberado: "sim", dataLiberacao: agora }));
-      localStorage.setItem("app_liberado", "sim");
-      localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, "0");
-      localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
-
-      setMensagem({ texto: "Acesso autorizado! Carregando...", tipo: "sucesso" });
-      setTimeout(() => {
-        onSuccess();
-      }, 300);
-    } else {
+    if (!acesso) {
       tentativas += 1;
       localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
 
@@ -308,14 +237,66 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
         localStorage.setItem(CONFIG.CHAVE_BLOQUEIO, Date.now().toString());
         verificarBloqueio();
       } else {
-        const restantes = CONFIG.MAX_TENTATIVAS - tentativas;
         setMensagem({
-          texto: `Senha inválida — ${restantes} ${restantes === 1 ? "tentativa restante" : "tentativas restantes"}`,
+          texto: "Senha inválida ou já utilizada",
           tipo: "erro",
         });
       }
       setSenhaInput("");
+      return;
     }
+
+    // 🔑 REGRA ESPECIAL: ADMINISTRADOR (validade === 0)
+    if (acesso.validade === 0) {
+      const objetoAcesso = {
+        inicio: Date.now(),
+        validade: 0,
+        dispositivo: "ADMIN_LIVRE",
+        senhaUsada: acesso.senha,
+        senha: acesso.senha,
+        liberado: "sim",
+      };
+
+      localStorage.setItem(CONFIG.CHAVE_ACESSO, JSON.stringify(objetoAcesso));
+      localStorage.setItem("acesso_projeto", JSON.stringify({ liberado: "sim", data: Date.now() }));
+      localStorage.setItem("acesso_app_temporario", JSON.stringify({ liberado: "sim", dataLiberacao: Date.now() }));
+      localStorage.setItem("app_liberado", "sim");
+      localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, "0");
+      localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
+
+      setMensagem({ texto: "Acesso de Administrador Autorizado!", tipo: "sucesso" });
+      setTimeout(() => {
+        onSuccess();
+      }, 300);
+      return;
+    }
+
+    // 👤 REGRA PARA USUÁRIOS COMUNS (validade > 0)
+    // Marca como usada para sempre
+    marcarSenhaComoUsada(acesso.senha);
+
+    const agora = Date.now();
+    const idDispositivo = gerarIdDispositivo();
+    const objetoAcesso = {
+      inicio: agora,
+      validade: acesso.validade,
+      dispositivo: idDispositivo,
+      senhaUsada: acesso.senha,
+      senha: acesso.senha,
+      liberado: "sim",
+    };
+
+    localStorage.setItem(CONFIG.CHAVE_ACESSO, JSON.stringify(objetoAcesso));
+    localStorage.setItem("acesso_projeto", JSON.stringify({ liberado: "sim", data: agora }));
+    localStorage.setItem("acesso_app_temporario", JSON.stringify({ liberado: "sim", dataLiberacao: agora }));
+    localStorage.setItem("app_liberado", "sim");
+    localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, "0");
+    localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
+
+    setMensagem({ texto: "Acesso autorizado! Carregando...", tipo: "sucesso" });
+    setTimeout(() => {
+      onSuccess();
+    }, 300);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -346,17 +327,17 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           PROJETO EMAGRECIMENTO SAUDÁVEL
         </h1>
         <p className="subtitulo text-xs sm:text-sm text-[#607D8B] mb-5 font-medium">
-          Acesso exclusivo com validade definida
+          Acesso exclusivo com controle de validade
         </p>
 
         {/* Quadro informativo de segurança */}
         <div className="bg-[#F5F7FA] border border-slate-200/80 rounded-2xl p-3.5 mb-5 text-left text-xs text-[#607D8B] space-y-1.5 font-medium shadow-2xs">
           <div className="flex items-center gap-2 text-[#263238] font-bold">
             <ShieldCheck className="w-4 h-4 text-[#2E7D32] shrink-0" />
-            <span>Vínculo de Dispositivo &amp; Expiração Automática</span>
+            <span>Sistema de Acesso Restrito &amp; Seguro</span>
           </div>
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            Seu acesso fica restrito a este aparelho e permanecerá ativo durante o período liberado.
+            As senhas comuns têm uso único e ficam vinculadas ao primeiro dispositivo utilizado. O acesso de administrador possui validade irrestrita.
           </p>
         </div>
 
@@ -372,7 +353,7 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
             <input
               type={verSenha ? "text" : "password"}
               id="campoSenha"
-              placeholder="Senha recebida"
+              placeholder="Digite sua senha"
               autoComplete="off"
               disabled={bloqueado}
               value={senhaInput}

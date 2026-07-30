@@ -40,7 +40,7 @@ import RastreadorInjecaoCard from "./components/RastreadorInjecaoCard";
 import MedicamentosCard from "./components/MedicamentosCard";
 import PlanoNutricional from "./components/PlanoNutricional";
 import RelatorioPDFView from "./components/RelatorioPDFView";
-import TelaSenha, { CONFIG, gerarIdDispositivo, marcarSenhaUsada } from "./components/TelaSenha";
+import TelaSenha, { CONFIG, gerarIdDispositivo, marcarSenhaComoUsada } from "./components/TelaSenha";
 import AbaEvolucaoMedidas from "./components/AbaEvolucaoMedidas";
 import AtividadeFisicaTab from "./components/AtividadeFisicaTab";
 import { AppData, AppConfig, Registro, MedicamentoItem } from "./types";
@@ -48,19 +48,26 @@ import { salvarJsonSnapshotAuto, restaurarJsonSnapshotAuto } from "./utils/autoB
 
 export default function App() {
   const verificarSessaoAtiva = (): boolean => {
-    // 1. Checa a chave v4 com vínculo ao dispositivo, validade e selo único por senha
-    const rawV4 = localStorage.getItem(CONFIG.CHAVE_ACESSO);
-    if (rawV4) {
+    // 1. Checa a chave de acesso v1 com suporte a Administrador Infinito e Usuários Comuns
+    const rawAcesso = localStorage.getItem(CONFIG.CHAVE_ACESSO);
+    if (rawAcesso) {
       try {
-        const dados = JSON.parse(rawV4);
+        const dados = JSON.parse(rawAcesso);
+        // ADMIN: VALIDADE INFINITA
+        if (dados.validade === 0) {
+          return true;
+        }
+
+        // USUÁRIO COMUM: VERIFICA DISPOSITIVO E TEMPO
         const idAtual = gerarIdDispositivo();
         if (dados.dispositivo && dados.dispositivo !== idAtual) {
           localStorage.removeItem(CONFIG.CHAVE_ACESSO);
           return false;
         }
+
         if (dados.inicio && dados.validade && Date.now() - dados.inicio > dados.validade) {
-          if (dados.senha) {
-            marcarSenhaUsada(dados.senha, dados.validade);
+          if (dados.senhaUsada || dados.senha) {
+            marcarSenhaComoUsada(dados.senhaUsada || dados.senha);
           }
           localStorage.removeItem(CONFIG.CHAVE_ACESSO);
           localStorage.removeItem("acesso_projeto");
@@ -107,10 +114,14 @@ export default function App() {
         return;
       }
 
-      const rawV2 = localStorage.getItem(CONFIG.CHAVE_ACESSO);
-      if (rawV2) {
+      const rawAcesso = localStorage.getItem(CONFIG.CHAVE_ACESSO);
+      if (rawAcesso) {
         try {
-          const dados = JSON.parse(rawV2);
+          const dados = JSON.parse(rawAcesso);
+          if (dados.validade === 0) {
+            setTempoRestanteTexto("🔑 Acesso de Administrador – Sem validade");
+            return;
+          }
           if (dados.inicio && dados.validade) {
             const restante = dados.validade - (Date.now() - dados.inicio);
             if (restante <= 0) {
