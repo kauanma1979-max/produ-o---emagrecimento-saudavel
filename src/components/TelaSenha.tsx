@@ -41,12 +41,7 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
   // Carrega senhas dinamicamente das variáveis da Vercel (ex: VITE_SENHA_ANDRE=andre2026|86400000)
   const getListaAcessos = (): ItemAcesso[] => {
     const acessos: ItemAcesso[] = [
-      { senha: "123456", validade: 86400000 },
-      { senha: "1234", validade: 86400000 },
-      { senha: "0000", validade: 86400000 },
-      { senha: "admin", validade: 86400000 },
-      { senha: "andre2026", validade: 86400000 },
-      { senha: "maria123", validade: 259200000 },
+      { senha: "12726658", validade: 86400000 },
     ];
 
     try {
