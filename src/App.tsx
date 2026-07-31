@@ -146,13 +146,22 @@ export default function App() {
     return () => clearInterval(interval);
   }, [appLiberado]);
 
-  const handleBloquearApp = () => {
+  const limparSessaoCompleta = () => {
+    localStorage.removeItem("acesso_ok");
     localStorage.removeItem(CONFIG.CHAVE_ACESSO);
     localStorage.removeItem("acesso_projeto");
     localStorage.removeItem("acesso_app_temporario");
     localStorage.removeItem("app_liberado");
     localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
     localStorage.removeItem(CONFIG.CHAVE_TENTATIVAS);
+    localStorage.removeItem("bloqueio_acesso");
+    localStorage.removeItem("tentativas_acesso");
+    localStorage.removeItem("bloq");
+    localStorage.removeItem("tent");
+  };
+
+  const handleBloquearApp = () => {
+    limparSessaoCompleta();
     setAppLiberado(false);
     setMobileMenuOpen(false);
   };
@@ -165,11 +174,7 @@ export default function App() {
     salvarJsonSnapshotAuto(appData);
 
     // 3. Encerra a sessão e bloqueia o app
-    localStorage.removeItem("acesso_projeto");
-    localStorage.removeItem("acesso_app_temporario");
-    localStorage.removeItem("app_liberado");
-    localStorage.removeItem("bloqueio_acesso");
-    localStorage.removeItem("tentativas_acesso");
+    limparSessaoCompleta();
     setAppLiberado(false);
     setMobileMenuOpen(false);
   };
@@ -617,15 +622,6 @@ export default function App() {
         >
           <Settings className="w-4 h-4" />
           <span>Configurar Perfil</span>
-        </button>
-
-        <button
-          onClick={handleBloquearApp}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer text-rose-400 hover:text-rose-300 hover:bg-rose-950/30"
-          title="Bloquear aplicativo com senha"
-        >
-          <Lock className="w-4 h-4" />
-          <span>Bloquear App</span>
         </button>
 
         {/* Profile Card Summary in the Sidebar */}
