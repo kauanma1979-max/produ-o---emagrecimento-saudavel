@@ -6,6 +6,12 @@ export interface AppConfig {
   nome?: string; // Full Name
   sexo?: string; // Sex
   idade?: number; // Age
+  altura?: number; // Height (m or cm)
+  pesoAtual?: number; // Current weight (kg)
+  medidaCintura?: number; // Waist (cm)
+  medidaQuadril?: number; // Hip (cm)
+  objetivo?: string; // Main goal
+  observacoes?: string; // Notes / restrictions
 }
 
 export interface MedidasCorporais {

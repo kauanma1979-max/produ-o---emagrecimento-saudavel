@@ -268,6 +268,20 @@ export default function ConfigPerfil({ config, onChange, inSidebar = false }: Co
 
           <div>
             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+              Altura (ex: 1,65)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Ex: 1.65"
+              value={config.altura || ""}
+              onChange={(e) => onChange("altura", parseFloat(e.target.value) || 0)}
+              className="block w-full rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 p-2.5 border font-semibold text-sm text-slate-700 outline-none transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
               Peso Inicial (kg)
             </label>
             <input
@@ -279,6 +293,54 @@ export default function ConfigPerfil({ config, onChange, inSidebar = false }: Co
               }
               className="block w-full rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 p-2.5 border font-bold text-slate-700 outline-none transition-all"
               placeholder="0.0"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+              Peso Atual (kg)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={config.pesoAtual || ""}
+              onChange={(e) =>
+                onChange("pesoAtual", parseFloat(e.target.value) || 0)
+              }
+              className="block w-full rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 p-2.5 border font-bold text-slate-700 outline-none transition-all"
+              placeholder="0.0"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+              Medida Cintura (cm)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={config.medidaCintura || ""}
+              onChange={(e) =>
+                onChange("medidaCintura", parseFloat(e.target.value) || 0)
+              }
+              className="block w-full rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 p-2.5 border font-semibold text-sm text-slate-700 outline-none transition-all"
+              placeholder="Ex: 85.0"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+              Medida Quadril (cm)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={config.medidaQuadril || ""}
+              onChange={(e) =>
+                onChange("medidaQuadril", parseFloat(e.target.value) || 0)
+              }
+              className="block w-full rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 p-2.5 border font-semibold text-sm text-slate-700 outline-none transition-all"
+              placeholder="Ex: 98.0"
             />
           </div>
 
@@ -307,6 +369,32 @@ export default function ConfigPerfil({ config, onChange, inSidebar = false }: Co
               value={config.dataInicio}
               onChange={(e) => onChange("dataInicio", e.target.value)}
               className="block w-full rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 p-2.5 border font-bold text-slate-700 outline-none transition-all"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+              Seu Objetivo Principal
+            </label>
+            <textarea
+              rows={2}
+              value={config.objetivo || ""}
+              onChange={(e) => onChange("objetivo", e.target.value)}
+              placeholder="Descreva seu objetivo de saúde e emagrecimento..."
+              className="block w-full rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 p-2.5 border font-semibold text-sm text-slate-700 outline-none transition-all"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+              Observações / Restrições
+            </label>
+            <textarea
+              rows={3}
+              value={config.observacoes || ""}
+              onChange={(e) => onChange("observacoes", e.target.value)}
+              placeholder="Alergias, lesões, restrições alimentares ou observações médicas..."
+              className="block w-full rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 p-2.5 border font-semibold text-sm text-slate-700 outline-none transition-all"
             />
           </div>
         </div>

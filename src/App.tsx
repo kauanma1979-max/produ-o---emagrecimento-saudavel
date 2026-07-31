@@ -27,10 +27,12 @@ import {
   Activity,
   Sparkles,
   FileCode,
-  CheckCircle2
+  CheckCircle2,
+  ClipboardList
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ConfigPerfil from "./components/ConfigPerfil";
+import FormularioDadosCliente from "./components/FormularioDadosCliente";
 import DashboardStatus from "./components/DashboardStatus";
 import PerfilCardDashboard from "./components/PerfilCardDashboard";
 import GraficosDashboard from "./components/GraficosDashboard";
@@ -45,6 +47,7 @@ import AbaEvolucaoMedidas from "./components/AbaEvolucaoMedidas";
 import AtividadeFisicaTab from "./components/AtividadeFisicaTab";
 import { AppData, AppConfig, Registro, MedicamentoItem } from "./types";
 import { salvarJsonSnapshotAuto, restaurarJsonSnapshotAuto } from "./utils/autoBackupManager";
+import { carregarDadosClienteSupabase } from "./lib/supabase";
 
 export default function App() {
   const verificarSessaoAtiva = (): boolean => {
@@ -195,6 +198,12 @@ export default function App() {
             nome: parsed.config?.nome ?? "",
             sexo: parsed.config?.sexo ?? "",
             idade: parsed.config?.idade !== undefined ? Number(parsed.config.idade) : undefined,
+            altura: parsed.config?.altura !== undefined ? Number(parsed.config.altura) : undefined,
+            pesoAtual: parsed.config?.pesoAtual !== undefined ? Number(parsed.config.pesoAtual) : undefined,
+            medidaCintura: parsed.config?.medidaCintura !== undefined ? Number(parsed.config.medidaCintura) : undefined,
+            medidaQuadril: parsed.config?.medidaQuadril !== undefined ? Number(parsed.config.medidaQuadril) : undefined,
+            objetivo: parsed.config?.objetivo ?? "",
+            observacoes: parsed.config?.observacoes ?? "",
           },
           registros: Array.isArray(parsed.registros) ? parsed.registros : [],
           medicamentos: Array.isArray(parsed.medicamentos) ? parsed.medicamentos : [],
@@ -212,45 +221,76 @@ export default function App() {
         nome: "",
         sexo: "",
         idade: undefined,
+        altura: undefined,
+        pesoAtual: undefined,
+        medidaCintura: undefined,
+        medidaQuadril: undefined,
+        objetivo: "",
+        observacoes: "",
       },
       registros: [],
       medicamentos: [],
     };
   });
 
-  // Save data & create JSON snapshot automatically whenever appData changes or when app closes/unloads
+  // Helper para atualizar parcialmente a configuração e persistir no app
+  const handleUpdateConfigPartial = (partial: Partial<AppConfig>) => {
+    setAppData((prev) => {
+      const updated = {
+        ...prev,
+        config: {
+          ...prev.config,
+          ...partial,
+        },
+      };
+      localStorage.setItem("projetoEmagrecimentoFinal", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Save data automatically whenever appData changes
   useEffect(() => {
     localStorage.setItem("projetoEmagrecimentoFinal", JSON.stringify(appData));
-    salvarJsonSnapshotAuto(appData);
-
-    const handleAutoSaveOnUnload = () => {
-      salvarJsonSnapshotAuto(appData);
-    };
-
-    window.addEventListener("beforeunload", handleAutoSaveOnUnload);
-    window.addEventListener("pagehide", handleAutoSaveOnUnload);
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        salvarJsonSnapshotAuto(appData);
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleAutoSaveOnUnload);
-      window.removeEventListener("pagehide", handleAutoSaveOnUnload);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
   }, [appData]);
 
-  // Handler executado automaticamente ao digitar a senha correta
-  const handleSucessoSenha = () => {
-    // 1. Busca o JSON salvo e restaura os dados do programa
+  // Handler executado automaticamente ao digitar a senha correta ou ao validar acesso
+  const handleSucessoSenha = async () => {
+    // 1. Busca o JSON salvo e restaura os dados do programa local
     const resultado = restaurarJsonSnapshotAuto();
     if (resultado.success && resultado.appData) {
       setAppData(resultado.appData);
     }
-    // 2. Inicia o programa
+
+    // 2. Busca e carrega dados do cliente do Supabase automaticamente via senha
+    const rawOk = localStorage.getItem("acesso_ok");
+    if (rawOk) {
+      let senha = "";
+      try {
+        const parsed = JSON.parse(rawOk);
+        senha = parsed?.senha || "";
+      } catch {
+        senha = rawOk;
+      }
+
+      if (senha) {
+        const dadosSupabase = await carregarDadosClienteSupabase(senha);
+        if (dadosSupabase) {
+          handleUpdateConfigPartial({
+            nome: dadosSupabase.nome_completo || dadosSupabase.nome,
+            idade: dadosSupabase.idade ? Number(dadosSupabase.idade) : undefined,
+            altura: dadosSupabase.altura ? Number(dadosSupabase.altura) : undefined,
+            pesoInicial: dadosSupabase.peso_inicial ? Number(dadosSupabase.peso_inicial) : undefined,
+            pesoAtual: dadosSupabase.peso_atual ? Number(dadosSupabase.peso_atual) : undefined,
+            medidaCintura: dadosSupabase.medida_cintura ? Number(dadosSupabase.medida_cintura) : undefined,
+            medidaQuadril: dadosSupabase.medida_quadril ? Number(dadosSupabase.medida_quadril) : undefined,
+            objetivo: dadosSupabase.objetivo,
+            observacoes: dadosSupabase.observacoes,
+          });
+        }
+      }
+    }
+
+    // 3. Inicia o programa
     setAppLiberado(true);
   };
 
@@ -536,6 +576,18 @@ export default function App() {
         >
           <LayoutDashboard className="w-4 h-4" />
           <span>Dashboard Principal</span>
+        </button>
+
+        <button
+          onClick={() => { setActiveTab("dados_cliente"); setMobileMenuOpen(false); }}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+            activeTab === "dados_cliente"
+              ? "bg-gradient-to-r from-[#2E7D32] to-[#1976D2] text-white shadow-md shadow-[#2E7D32]/20"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+          }`}
+        >
+          <ClipboardList className="w-4 h-4 text-indigo-400" />
+          <span>Dados de Acompanhamento</span>
         </button>
 
         <button
@@ -861,7 +913,18 @@ export default function App() {
               </motion.div>
             )}
 
-            {activeTab === "evolucao" ? (
+            {activeTab === "dados_cliente" ? (
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-6"
+              >
+                <FormularioDadosCliente
+                  config={appData.config}
+                  onUpdateConfig={handleUpdateConfigPartial}
+                />
+              </motion.div>
+            ) : activeTab === "evolucao" ? (
               <motion.div 
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -935,6 +998,12 @@ export default function App() {
                   config={appData.config}
                   registros={appData.registros}
                   onOpenConfigModal={() => setShowPerfilModal(true)}
+                />
+
+                {/* Formuário de Dados de Acompanhamento */}
+                <FormularioDadosCliente
+                  config={appData.config}
+                  onUpdateConfig={handleUpdateConfigPartial}
                 />
 
                 {/* Stats row */}
