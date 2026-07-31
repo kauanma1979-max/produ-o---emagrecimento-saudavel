@@ -197,17 +197,24 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           .maybeSingle();
 
         if (!error && data) {
-          if (data.valido_ate && Date.now() > data.valido_ate && data.tipo !== "admin") {
+          const idAparelhoLocal = gerarIdAparelho();
+          const idApBanco = data.id_aparelho || data.dispositivo_vinculado;
+          const primeiroAcesso = data.primeiro_acesso ? new Date(data.primeiro_acesso).getTime() : null;
+          const validoAte = primeiroAcesso
+            ? primeiroAcesso + (data.validade_ms || 86400000)
+            : (data.valido_ate ? (typeof data.valido_ate === "number" ? data.valido_ate : new Date(data.valido_ate).getTime()) : null);
+
+          if (validoAte && Date.now() > validoAte && data.tipo !== "admin") {
             localStorage.removeItem("acesso_ok");
             localStorage.removeItem(CONFIG.CHAVE_ACESSO);
-            setMensagem({ texto: "Acesso expirou", tipo: "erro" });
+            setMensagem({ texto: "Essa senha expirou", tipo: "erro" });
             return false;
           }
 
-          if (data.dispositivo_vinculado && data.dispositivo_vinculado !== gerarIdAparelho() && data.tipo !== "admin") {
+          if (idApBanco && idApBanco !== idAparelhoLocal && data.tipo !== "admin") {
             localStorage.removeItem("acesso_ok");
             localStorage.removeItem(CONFIG.CHAVE_ACESSO);
-            setMensagem({ texto: "Só permitido no aparelho original", tipo: "erro" });
+            setMensagem({ texto: "Essa senha já foi usada em outro dispositivo", tipo: "erro" });
             return false;
           }
 
@@ -292,43 +299,71 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           .maybeSingle();
 
         if (!error && data) {
-          if (data.valido_ate && Date.now() > data.valido_ate && data.tipo !== "admin") {
+          const idAparelhoLocal = gerarIdAparelho();
+          const idApBanco = data.id_aparelho || data.dispositivo_vinculado;
+          const primeiroAcesso = data.primeiro_acesso ? new Date(data.primeiro_acesso).getTime() : null;
+          const validoAte = primeiroAcesso
+            ? primeiroAcesso + (data.validade_ms || 86400000)
+            : (data.valido_ate ? (typeof data.valido_ate === "number" ? data.valido_ate : new Date(data.valido_ate).getTime()) : null);
+
+          // ❌ É ADMIN: LIBERA TOTAL
+          if (data.tipo === "admin") {
+            localStorage.setItem("acesso_ok", JSON.stringify({ senha }));
+            localStorage.setItem("tent", "0");
+            localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, "0");
+            localStorage.removeItem("bloq");
+            localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
+
+            await definirContextoSeguranca(senha, true);
+            setMensagem({ texto: "✅ Acesso liberado!", tipo: "sucesso" });
+            setTimeout(() => {
+              onSuccess();
+            }, 300);
+            return;
+          }
+
+          // ❌ JÁ EXPIROU
+          if (validoAte && Date.now() > validoAte) {
             tentativas++;
             localStorage.setItem("tent", tentativas.toString());
             localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
-            setMensagem({ texto: "Acesso expirou", tipo: "erro" });
+            setMensagem({ texto: "Essa senha expirou", tipo: "erro" });
             setSenhaInput("");
             return;
           }
 
-          if (data.dispositivo_vinculado && data.dispositivo_vinculado !== gerarIdAparelho() && data.tipo !== "admin") {
+          // 🔒 BARRADO SE PERTENCE A OUTRO APARELHO
+          if (idApBanco && idApBanco !== idAparelhoLocal) {
             tentativas++;
             localStorage.setItem("tent", tentativas.toString());
             localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
-            setMensagem({ texto: "Só permitido no aparelho original", tipo: "erro" });
+            setMensagem({ texto: "Essa senha já foi usada em outro dispositivo", tipo: "erro" });
             setSenhaInput("");
             return;
           }
 
-          // ✅ 1º ACESSO: ativa a senha (calcula data final e vincula aparelho)
-          if (data.tipo !== "admin" && !data.usado) {
-            let dataFinal = data.valido_ate;
-            if (!dataFinal) {
-              const duracaoMs = data.validade_ms || data.validade || 86400000;
-              dataFinal = Date.now() + duracaoMs;
-            }
+          // 🔒 PRIMEIRO ACESSO: REGISTRA NA NUVEM
+          if (!data.primeiro_acesso && !data.usado) {
+            const dataIso = new Date().toISOString();
+            const duracaoMs = data.validade_ms || 86400000;
+            const dataFinalMs = Date.now() + duracaoMs;
+
             await supabase
               .from("senhas_acesso")
               .update({
-                usado: true, // Apenas marca que já foi ativado
-                dispositivo_vinculado: gerarIdAparelho(),
-                valido_ate: dataFinal,
+                primeiro_acesso: dataIso,
+                id_aparelho: idAparelhoLocal,
+                dispositivo_vinculado: idAparelhoLocal,
+                usado: true,
+                valido_ate: dataFinalMs,
               })
               .eq("senha", senha);
 
-            data.valido_ate = dataFinal;
+            data.primeiro_acesso = dataIso;
+            data.id_aparelho = idAparelhoLocal;
+            data.dispositivo_vinculado = idAparelhoLocal;
             data.usado = true;
-            data.dispositivo_vinculado = gerarIdAparelho();
+            data.valido_ate = dataFinalMs;
           }
 
           localStorage.setItem("acesso_ok", JSON.stringify({ senha }));
@@ -336,8 +371,8 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
             CONFIG.CHAVE_ACESSO,
             JSON.stringify({
               inicio: Date.now(),
-              validade: data.tipo === "admin" ? 0 : (data.valido_ate ? Math.max(0, data.valido_ate - Date.now()) : 86400000),
-              dispositivo: data.tipo === "admin" ? "ADMIN_LIVRE" : gerarIdAparelho(),
+              validade: data.valido_ate ? Math.max(0, data.valido_ate - Date.now()) : 86400000,
+              dispositivo: idAparelhoLocal,
               senhaUsada: senha,
               senha: senha,
               liberado: "sim",
@@ -350,10 +385,10 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
 
           // ✅ Define o contexto de segurança com a senha logada
-          await definirContextoSeguranca(senha, data.tipo === "admin");
+          await definirContextoSeguranca(senha, false);
 
           setMensagem({
-            texto: data.tipo === "admin" ? "Acesso de Administrador Autorizado!" : "Acesso autorizado! Carregando...",
+            texto: "✅ Acesso liberado!",
             tipo: "sucesso",
           });
 

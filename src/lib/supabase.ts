@@ -1,20 +1,34 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || "").trim();
-const SUPABASE_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
+const DEFAULT_SUPABASE_URL = "https://qnrtjzlhrvlpfcyrmfnq.supabase.co";
+const DEFAULT_SUPABASE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucnRqemxocnZscGZjeXJtZm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDkwMDEsImV4cCI6MjEwMTAyNTAwMX0.x3H_Gg78kyUxgG390VDSAoJ-xdFmIU910P7EW9MNqyY";
 
-export const supabase: SupabaseClient | null =
-  SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL).trim();
+const SUPABASE_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_KEY).trim();
+
+export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export function gerarIdAparelho(): string {
-  if (typeof window === "undefined" || !navigator) return "APARELHO_DESCONHECIDO";
-  const dados = [
-    navigator.userAgent,
-    window.screen ? `${window.screen.width}x${window.screen.height}` : "",
-    navigator.language,
-    navigator.platform,
-  ].join("|");
-  return btoa(dados).replace(/=/g, "").slice(0, 40);
+  if (typeof window === "undefined") return "APARELHO_DESCONHECIDO";
+  let id = localStorage.getItem("id_aparelho");
+  if (!id) {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      id = crypto.randomUUID();
+    } else if (navigator) {
+      const dados = [
+        navigator.userAgent,
+        window.screen ? `${window.screen.width}x${window.screen.height}` : "",
+        navigator.language,
+        navigator.platform,
+      ].join("|");
+      id = btoa(dados).replace(/=/g, "").slice(0, 40);
+    } else {
+      id = "DEV_" + Math.random().toString(36).substring(2, 12);
+    }
+    localStorage.setItem("id_aparelho", id);
+  }
+  return id;
 }
 
 export async function definirContextoSeguranca(senha: string, ehAdmin: boolean = false): Promise<void> {
