@@ -322,15 +322,23 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
             return;
           }
 
-          // Marca como usada e vincula aparelho no banco se não for admin
+          // ✅ REGRA PRINCIPAL: SE AINDA NÃO TEM DATA FINAL = PRIMEIRO ACESSO → CALCULA AGORA
           if (data.tipo !== "admin") {
+            let dataFinal = data.valido_ate;
+            if (!dataFinal) {
+              const duracaoMs = data.validade_ms || data.validade || 86400000;
+              dataFinal = Date.now() + duracaoMs;
+            }
             await supabase
               .from("senhas_acesso")
               .update({
                 usado: true,
                 dispositivo_vinculado: gerarIdAparelho(),
+                valido_ate: dataFinal,
               })
               .eq("senha", senha);
+
+            data.valido_ate = dataFinal;
           }
 
           localStorage.setItem("acesso_ok", JSON.stringify({ senha }));
