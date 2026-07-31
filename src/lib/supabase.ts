@@ -17,6 +17,18 @@ export function gerarIdAparelho(): string {
   return btoa(dados).replace(/=/g, "").slice(0, 40);
 }
 
+export async function definirContextoSeguranca(senha: string, ehAdmin: boolean = false): Promise<void> {
+  if (!supabase || !senha) return;
+  try {
+    await supabase.rpc("definir_contexto", {
+      senha_atual: senha,
+      admin: ehAdmin,
+    });
+  } catch (err) {
+    console.warn("RPC definir_contexto ausente ou falhou:", err);
+  }
+}
+
 export async function carregarDadosClienteSupabase(senha: string): Promise<any | null> {
   if (!supabase || !senha) return null;
 
@@ -153,4 +165,5 @@ export async function salvarDadosCliente(senha: string) {
 if (typeof window !== "undefined") {
   (window as any).carregarDadosCliente = carregarDadosCliente;
   (window as any).salvarDadosCliente = salvarDadosCliente;
+  (window as any).definirContextoSeguranca = definirContextoSeguranca;
 }

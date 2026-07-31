@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, AlertTriangle } from "lucide-react";
 import { motion } from "motion/react";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { definirContextoSeguranca } from "../lib/supabase";
 
 interface TelaSenhaProps {
   onSuccess: () => void;
@@ -210,6 +211,9 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
             return false;
           }
 
+          // ✅ Define o contexto de segurança com a senha logada
+          await definirContextoSeguranca(senhaSalva, data.tipo === "admin");
+
           onSuccess();
           return true;
         }
@@ -344,6 +348,9 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, "0");
           localStorage.removeItem("bloq");
           localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
+
+          // ✅ Define o contexto de segurança com a senha logada
+          await definirContextoSeguranca(senha, data.tipo === "admin");
 
           setMensagem({
             texto: data.tipo === "admin" ? "Acesso de Administrador Autorizado!" : "Acesso autorizado! Carregando...",
