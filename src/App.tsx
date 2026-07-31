@@ -167,13 +167,7 @@ export default function App() {
   };
 
   const handleSairApp = () => {
-    // 1. Gera o arquivo JSON e dispara o download físico direto para a pasta de Downloads
-    handleExportBackup();
-
-    // 2. Salva também no banco interno de snapshot de recuperação automática
-    salvarJsonSnapshotAuto(appData);
-
-    // 3. Encerra a sessão e bloqueia o app
+    // Encerra a sessão e bloqueia o app sem baixar backup automático
     limparSessaoCompleta();
     setAppLiberado(false);
     setMobileMenuOpen(false);
@@ -835,7 +829,7 @@ export default function App() {
             </button>
             <button
               onClick={handleSairApp}
-              title="Salvar backup JSON e Sair do Aplicativo"
+              title="Sair do Aplicativo"
               className="bg-[#D32F2F] hover:bg-[#B71C1C] active:scale-[0.98] text-white px-3 md:px-4 py-1.5 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 shadow-md shadow-[#D32F2F]/20 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
