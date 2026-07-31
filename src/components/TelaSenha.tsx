@@ -196,13 +196,6 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           .maybeSingle();
 
         if (!error && data) {
-          if (data.usado && data.tipo !== "admin") {
-            localStorage.removeItem("acesso_ok");
-            localStorage.removeItem(CONFIG.CHAVE_ACESSO);
-            setMensagem({ texto: "Senha já utilizada", tipo: "erro" });
-            return false;
-          }
-
           if (data.valido_ate && Date.now() > data.valido_ate && data.tipo !== "admin") {
             localStorage.removeItem("acesso_ok");
             localStorage.removeItem(CONFIG.CHAVE_ACESSO);
@@ -213,7 +206,7 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           if (data.dispositivo_vinculado && data.dispositivo_vinculado !== gerarIdAparelho() && data.tipo !== "admin") {
             localStorage.removeItem("acesso_ok");
             localStorage.removeItem(CONFIG.CHAVE_ACESSO);
-            setMensagem({ texto: "Acesso só permitido no aparelho original", tipo: "erro" });
+            setMensagem({ texto: "Só permitido no aparelho original", tipo: "erro" });
             return false;
           }
 
@@ -295,20 +288,11 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           .maybeSingle();
 
         if (!error && data) {
-          if (data.usado && data.tipo !== "admin") {
-            tentativas++;
-            localStorage.setItem("tent", tentativas.toString());
-            localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
-            setMensagem({ texto: "Senha já utilizada", tipo: "erro" });
-            setSenhaInput("");
-            return;
-          }
-
           if (data.valido_ate && Date.now() > data.valido_ate && data.tipo !== "admin") {
             tentativas++;
             localStorage.setItem("tent", tentativas.toString());
             localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
-            setMensagem({ texto: "Senha expirou", tipo: "erro" });
+            setMensagem({ texto: "Acesso expirou", tipo: "erro" });
             setSenhaInput("");
             return;
           }
@@ -317,13 +301,13 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
             tentativas++;
             localStorage.setItem("tent", tentativas.toString());
             localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, tentativas.toString());
-            setMensagem({ texto: "Acesso só permitido no aparelho original", tipo: "erro" });
+            setMensagem({ texto: "Só permitido no aparelho original", tipo: "erro" });
             setSenhaInput("");
             return;
           }
 
-          // ✅ REGRA PRINCIPAL: SE AINDA NÃO TEM DATA FINAL = PRIMEIRO ACESSO → CALCULA AGORA
-          if (data.tipo !== "admin") {
+          // ✅ 1º ACESSO: ativa a senha (calcula data final e vincula aparelho)
+          if (data.tipo !== "admin" && !data.usado) {
             let dataFinal = data.valido_ate;
             if (!dataFinal) {
               const duracaoMs = data.validade_ms || data.validade || 86400000;
@@ -332,13 +316,15 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
             await supabase
               .from("senhas_acesso")
               .update({
-                usado: true,
+                usado: true, // Apenas marca que já foi ativado
                 dispositivo_vinculado: gerarIdAparelho(),
                 valido_ate: dataFinal,
               })
               .eq("senha", senha);
 
             data.valido_ate = dataFinal;
+            data.usado = true;
+            data.dispositivo_vinculado = gerarIdAparelho();
           }
 
           localStorage.setItem("acesso_ok", JSON.stringify({ senha }));
