@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, AlertTriangle, UserPlus, LogIn, Mail, User } from "lucide-react";
 import { motion } from "motion/react";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { definirContextoSeguranca } from "../lib/supabase";
@@ -133,7 +133,10 @@ export function marcarSenhaComoUsada(senha: string) {
 }
 
 export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaProps) {
+  const [abaAtiva, setAbaAtiva] = useState<"pin" | "login" | "cadastrar">("pin");
   const [senhaInput, setSenhaInput] = useState("");
+  const [emailInput, setEmailInput] = useState("");
+  const [nomeInput, setNomeInput] = useState("");
   const [mensagem, setMensagem] = useState<{ texto: string; tipo: "erro" | "aviso" | "sucesso" } | null>(
     msgExpiradoInicial ? { texto: msgExpiradoInicial, tipo: "erro" } : null
   );
@@ -478,9 +481,52 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
     }, 300);
   };
 
+  const handleCadastrar = async () => {
+    if (!senhaInput && !emailInput) {
+      setMensagem({ texto: "Preencha a senha ou e-mail desejado para cadastro.", tipo: "aviso" });
+      return;
+    }
+    const senhaCadastro = (senhaInput || emailInput).trim();
+
+    if (supabase) {
+      try {
+        const { data: existe } = await supabase
+          .from("senhas_acesso")
+          .select("senha")
+          .eq("senha", senhaCadastro)
+          .maybeSingle();
+
+        if (!existe) {
+          await supabase.from("senhas_acesso").insert({
+            senha: senhaCadastro,
+            tipo: "cliente",
+            usado: false,
+            validade_ms: 2592000000,
+          });
+        }
+      } catch (e) {
+        console.warn("Erro ao cadastrar senha no Supabase:", e);
+      }
+    }
+
+    setMensagem({
+      texto: "✅ Cadastro/Solicitação enviada com sucesso! Conectando...",
+      tipo: "sucesso",
+    });
+
+    setSenhaInput(senhaCadastro);
+    setTimeout(() => {
+      tentarAcesso();
+    }, 600);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !bloqueado) {
-      tentarAcesso();
+      if (abaAtiva === "cadastrar") {
+        handleCadastrar();
+      } else {
+        tentarAcesso();
+      }
     }
   };
 
@@ -493,21 +539,64 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="caixa-acesso bg-white p-7 sm:p-9 rounded-3xl shadow-2xl w-full max-w-md text-center border border-slate-100 relative overflow-hidden my-auto"
+        className="caixa-acesso bg-white p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-md text-center border border-slate-100 relative overflow-hidden my-auto"
       >
         {/* Barra superior decorativa com gradiente Verde + Azul */}
         <div className="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-[#2E7D32] via-[#1976D2] to-[#2E7D32]" />
 
-        <div className="mx-auto w-14 h-14 bg-[#E8F5E9] text-[#2E7D32] rounded-2xl flex items-center justify-center mb-4 shadow-inner border border-[#2E7D32]/20">
+        {/* Ícone de cadeado em quadrado verde arredondado */}
+        <div className="mx-auto w-14 h-14 bg-[#E8F5E9] text-[#2E7D32] rounded-2xl flex items-center justify-center mb-3.5 shadow-xs border border-[#2E7D32]/20">
           <Lock className="w-7 h-7 text-[#2E7D32]" />
         </div>
 
-        <h1 className="logo text-xl sm:text-2xl font-black text-[#2E7D32] mb-1 uppercase tracking-tight">
+        <h1 className="logo text-xl sm:text-2xl font-extrabold text-[#2E7D32] mb-1 uppercase tracking-tight">
           PROJETO EMAGRECIMENTO SAUDÁVEL
         </h1>
-        <p className="subtitulo text-xs sm:text-sm text-[#607D8B] mb-5 font-medium">
+        <p className="subtitulo text-xs sm:text-sm text-slate-500 mb-4 font-medium">
           Acesso exclusivo com controle de validade
         </p>
+
+        {/* Seletor de Abas (Modos de Acesso) - Substitui "Login Firebase" por "Login / Senha" */}
+        <div className="bg-slate-100/90 p-1 border border-slate-200/70 rounded-2xl flex gap-1 mb-5">
+          <button
+            type="button"
+            onClick={() => { setAbaAtiva("pin"); setMensagem(null); }}
+            className={`flex-1 py-2 px-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              abaAtiva === "pin"
+                ? "bg-white text-[#2E7D32] shadow-xs border border-slate-200/80"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <KeyRound className="w-4 h-4 text-[#2E7D32]" />
+            <span>Senha PIN</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setAbaAtiva("login"); setMensagem(null); }}
+            className={`flex-1 py-2 px-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              abaAtiva === "login"
+                ? "bg-white text-[#2E7D32] shadow-xs border border-slate-200/80"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <LogIn className="w-4 h-4 text-[#2E7D32]" />
+            <span>Login / Senha</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setAbaAtiva("cadastrar"); setMensagem(null); }}
+            className={`flex-1 py-2 px-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              abaAtiva === "cadastrar"
+                ? "bg-white text-[#2E7D32] shadow-xs border border-slate-200/80"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <UserPlus className="w-4 h-4 text-[#2E7D32]" />
+            <span>Cadastrar</span>
+          </button>
+        </div>
 
         {/* Quadro informativo de segurança */}
         <div className="bg-[#F5F7FA] border border-slate-200/80 rounded-2xl p-3.5 mb-5 text-left text-xs text-[#607D8B] space-y-1.5 font-medium shadow-2xs">
@@ -520,51 +609,178 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           </p>
         </div>
 
-        {/* Campo de Senha */}
-        <div className="grupo-campo text-left mb-4">
-          <label htmlFor="campoSenha" className="block text-xs font-bold text-[#263238] mb-1.5 uppercase tracking-wider">
-            Digite sua senha de acesso
-          </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
-              <KeyRound className="w-5 h-5" />
+        {/* FORMULÁRIO DE ACESSO */}
+        {abaAtiva === "pin" && (
+          <div className="grupo-campo text-left mb-4 space-y-3">
+            <div>
+              <label htmlFor="campoSenha" className="block text-xs font-bold text-[#263238] mb-1.5 uppercase tracking-wider">
+                Digite sua senha de acesso
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <input
+                  type={verSenha ? "text" : "password"}
+                  id="campoSenha"
+                  placeholder="Digite sua senha"
+                  autoComplete="off"
+                  disabled={bloqueado}
+                  value={senhaInput}
+                  onChange={(e) => {
+                    setSenhaInput(e.target.value);
+                    if (mensagem && mensagem.tipo === "erro") setMensagem(null);
+                  }}
+                  onKeyDown={handleKeyDown}
+                  className="w-full pl-11 pr-11 py-3 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-bold text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#2E7D32] focus:border-[#2E7D32] disabled:bg-slate-100 disabled:cursor-not-allowed transition-all"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setVerSenha(!verSenha)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#607D8B] hover:text-[#263238] cursor-pointer"
+                  title={verSenha ? "Ocultar senha" : "Ver senha"}
+                >
+                  {verSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
-            <input
-              type={verSenha ? "text" : "password"}
-              id="campoSenha"
-              placeholder="Digite sua senha"
-              autoComplete="off"
-              disabled={bloqueado}
-              value={senhaInput}
-              onChange={(e) => {
-                setSenhaInput(e.target.value);
-                if (mensagem && mensagem.tipo === "erro") setMensagem(null);
-              }}
-              onKeyDown={handleKeyDown}
-              className="w-full pl-11 pr-11 py-3 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-bold text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#2E7D32] focus:border-[#2E7D32] disabled:bg-slate-100 disabled:cursor-not-allowed transition-all"
-              autoFocus
-            />
+
             <button
-              type="button"
-              onClick={() => setVerSenha(!verSenha)}
-              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#607D8B] hover:text-[#263238] cursor-pointer"
-              title={verSenha ? "Ocultar senha" : "Ver senha"}
+              id="btnEntrar"
+              onClick={tentarAcesso}
+              disabled={bloqueado}
+              className="btn-entrar w-full bg-gradient-to-r from-[#2E7D32] to-[#1976D2] hover:opacity-95 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-3.5 px-6 rounded-xl text-sm sm:text-base shadow-lg shadow-[#2E7D32]/20 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
             >
-              {verSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              <span>Acessar Sistema</span>
+              <ArrowRight className="w-5 h-5" />
             </button>
           </div>
-        </div>
+        )}
 
-        {/* Botão Entrar */}
-        <button
-          id="btnEntrar"
-          onClick={tentarAcesso}
-          disabled={bloqueado}
-          className="btn-entrar w-full bg-gradient-to-r from-[#2E7D32] to-[#1976D2] hover:opacity-95 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-3 px-6 rounded-xl text-sm sm:text-base shadow-lg shadow-[#2E7D32]/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <span>Acessar Sistema</span>
-          <ArrowRight className="w-5 h-5" />
-        </button>
+        {abaAtiva === "login" && (
+          <div className="grupo-campo text-left mb-4 space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-[#263238] mb-1 uppercase tracking-wider">
+                E-mail ou Usuário
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="seu.email@exemplo.com"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="w-full pl-11 pr-4 py-2.5 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#263238] mb-1 uppercase tracking-wider">
+                Senha de Acesso
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <input
+                  type={verSenha ? "text" : "password"}
+                  placeholder="Digite sua senha"
+                  value={senhaInput}
+                  onChange={(e) => setSenhaInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="w-full pl-11 pr-11 py-2.5 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setVerSenha(!verSenha)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#607D8B] hover:text-[#263238] cursor-pointer"
+                >
+                  {verSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={tentarAcesso}
+              disabled={bloqueado}
+              className="w-full bg-gradient-to-r from-[#2E7D32] to-[#1976D2] hover:opacity-95 active:scale-[0.98] disabled:opacity-50 text-white font-black py-3.5 px-6 rounded-xl text-sm sm:text-base shadow-lg shadow-[#2E7D32]/20 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+            >
+              <span>Entrar com Login / Senha</span>
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
+        {abaAtiva === "cadastrar" && (
+          <div className="grupo-campo text-left mb-4 space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-[#263238] mb-1 uppercase tracking-wider">
+                Nome Completo
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
+                  <User className="w-5 h-5" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Seu nome"
+                  value={nomeInput}
+                  onChange={(e) => setNomeInput(e.target.value)}
+                  className="w-full pl-11 pr-4 py-2.5 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#263238] mb-1 uppercase tracking-wider">
+                E-mail ou Usuário
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="seu.email@exemplo.com"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  className="w-full pl-11 pr-4 py-2.5 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#263238] mb-1 uppercase tracking-wider">
+                Senha de Acesso Desejada
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <input
+                  type="password"
+                  placeholder="Crie uma senha de acesso"
+                  value={senhaInput}
+                  onChange={(e) => setSenhaInput(e.target.value)}
+                  className="w-full pl-11 pr-4 py-2.5 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleCadastrar}
+              className="w-full bg-gradient-to-r from-[#2E7D32] to-[#1976D2] hover:opacity-95 text-white font-black py-3.5 px-6 rounded-xl text-sm sm:text-base shadow-lg shadow-[#2E7D32]/20 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+            >
+              <span>Solicitar / Cadastrar Acesso</span>
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+        )}
 
         {/* Mensagem de Erro / Aviso / Sucesso */}
         {mensagem && (
