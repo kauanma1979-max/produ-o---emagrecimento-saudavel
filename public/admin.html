@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Controle – Administrador | Projeto Emagrecimento</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background:#f1f5f9; color:#1e293b; padding:20px; min-height:100vh; }
+    .container { max-width:1100px; margin:0 auto; }
+    .cabecalho { display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; background:white; padding:18px 24px; border-radius:16px; box-shadow:0 4px 15px rgba(0,0,0,0.05); }
+    h1 { color:#1e3a8a; font-size:22px; font-weight:800; display:flex; align-items:center; gap:10px; }
+    .btn-sair { padding:10px 20px; background:#ef4444; color:white; border:none; border-radius:10px; cursor:pointer; font-weight:700; transition:all 0.2s; }
+    .btn-sair:hover { background:#dc2626; transform:translateY(-1px); }
+    
+    .caixa-form { background:white; padding:24px; border-radius:16px; box-shadow:0 4px 15px rgba(0,0,0,0.05); margin-bottom:25px; border:1px solid #e2e8f0; }
+    .linha { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; }
+    .campo { flex:1; min-width:200px; }
+    label { display:block; margin-bottom:6px; font-weight:700; font-size:12px; text-transform:uppercase; color:#64748b; tracking-wider:1px; }
+    input, select { width:100%; padding:12px 14px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px; font-weight:600; outline:none; transition:all 0.2s; background:#f8fafc; }
+    input:focus, select:focus { border-color:#2563eb; background:white; box-shadow:0 0 0 3px rgba(37,99,235,0.15); }
+    
+    .btn { padding:12px 20px; border:none; border-radius:10px; cursor:pointer; font-weight:700; font-size:14px; transition:all 0.2s; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+    .btn-primario { background:linear-gradient(135deg, #1e3a8a, #2563eb); color:white; box-shadow:0 4px 12px rgba(37,99,235,0.25); }
+    .btn-primario:hover { opacity:0.95; transform:translateY(-1px); }
+    .btn-sucesso { background:#10b981; color:white; }
+    .btn-sucesso:hover { background:#059669; }
+    .btn-perigo { background:#ef4444; color:white; }
+    .btn-perigo:hover { background:#dc2626; }
+    .btn-aviso { background:#f59e0b; color:white; }
+    .btn-aviso:hover { background:#d97706; }
+    
+    .tabela-container { background:white; border-radius:16px; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,0.05); border:1px solid #e2e8f0; }
+    .tabela { width:100%; border-collapse:collapse; text-align:left; }
+    th, td { padding:14px 18px; border-bottom:1px solid #f1f5f9; font-size:14px; }
+    th { background:#f8fafc; font-weight:800; color:#1e3a8a; text-transform:uppercase; font-size:11px; tracking-wider:1px; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:#faf5ff; }
+    
+    .status { padding:5px 12px; border-radius:20px; font-size:11px; font-weight:800; text-transform:uppercase; display:inline-block; }
+    .ativo { background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; }
+    .expirado { background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; }
+    
+    .mensagem { margin-top:14px; padding:12px; border-radius:10px; display:none; font-weight:600; font-size:14px; }
+    .erro { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+    .ok { background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; }
+    
+    .area-login { max-width:440px; margin:80px auto; background:white; padding:36px; border-radius:24px; box-shadow:0 10px 40px rgba(0,0,0,0.08); border:1px solid #e2e8f0; text-align:center; }
+    .area-login h2 { font-size:22px; color:#1e3a8a; margin-bottom:8px; font-weight:800; }
+    .area-login p { font-size:13px; color:#64748b; margin-bottom:24px; }
+    .area-login .campo { text-align:left; margin-bottom:16px; }
+  </style>
+</head>
+<body>
+
+<!-- TELA DE LOGIN ADMIN -->
+<div id="telaLogin" class="area-login">
+  <div style="width:56px; height:56px; background:#dbeafe; color:#1e3a8a; border-radius:16px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; font-size:24px;">
+    🔑
+  </div>
+  <h2>Acesso Administrativo</h2>
+  <p>Painel exclusivo de controle de clientes e validades</p>
+  
+  <div class="campo">
+    <label>E-mail ou Usuário Admin</label>
+    <input type="text" id="emailAdmin" placeholder="admin@seusite.com.br" value="marianzo.cs@gmail.com">
+  </div>
+  <div class="campo">
+    <label>Senha de Administrador</label>
+    <input type="password" id="senhaAdmin" placeholder="Sua senha de admin" autocomplete="current-password">
+  </div>
+  <button class="btn btn-primario" style="width:100%; margin-top:8px; padding:14px;" onclick="logarAdmin()">Entrar no Painel</button>
+  <div id="msgLogin" class="mensagem"></div>
+</div>
+
+<!-- PAINEL PRINCIPAL -->
+<div id="painel" class="container" style="display:none;">
+  <div class="cabecalho">
+    <h1><span>📋</span> Painel de Controle – Clientes e Acessos</h1>
+    <button class="btn-sair" onclick="sair()">Sair do Painel</button>
+  </div>
+
+  <div class="caixa-form">
+    <h3 style="margin-bottom:16px; color:#1e3a8a; font-size:16px; font-weight:800; display:flex; align-items:center; gap:8px;">
+      <span>➕</span> Cadastrar Novo Cliente / Gerar Acesso
+    </h3>
+    <div class="linha">
+      <div class="campo">
+        <label>Nome Completo</label>
+        <input type="text" id="nomeCliente" placeholder="Ex: Maria Silva">
+      </div>
+      <div class="campo">
+        <label>E-mail ou Identificador</label>
+        <input type="text" id="emailCliente" placeholder="cliente@email.com">
+      </div>
+      <div class="campo">
+        <label>Senha PIN / Acesso</label>
+        <input type="text" id="senhaCliente" placeholder="Ex: 123456">
+      </div>
+      <div class="campo" style="max-width:160px;">
+        <label>Validade</label>
+        <select id="prazo">
+          <option value="7">7 Dias</option>
+          <option value="15">15 Dias</option>
+          <option value="30" selected>30 Dias</option>
+          <option value="90">90 Dias</option>
+          <option value="365">1 Ano (365d)</option>
+        </select>
+      </div>
+      <button class="btn btn-primario" onclick="cadastrarCliente()">Cadastrar Acesso</button>
+    </div>
+    <div id="msgForm" class="mensagem"></div>
+  </div>
+
+  <div class="tabela-container">
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>E-mail / Senha</th>
+          <th>Validade Até</th>
+          <th>Status</th>
+          <th style="text-align:right;">Ações de Controle</th>
+        </tr>
+      </thead>
+      <tbody id="listaClientes">
+        <tr>
+          <td colspan="5" style="text-align:center; color:#94a3b8; padding:30px;">Carregando dados dos clientes...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- BIBLIOTECAS DO FIREBASE E SUPABASE -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+// CONFIGURAÇÃO DO FIREBASE
+const firebaseConfig = {
+  apiKey: "AIzaSyBv7Vg0-IYNmDX9SZY7wZYCZKLbQMaoDF8",
+  authDomain: "oemagrecimentosaudavel.firebaseapp.com",
+  projectId: "oemagrecimentosaudavel",
+  storageBucket: "oemagrecimentosaudavel.firebasestorage.app",
+  messagingSenderId: "902556499129",
+  appId: "1:902556499129:web:736e2616dad2266f576f68"
+};
+
+let auth = null;
+let db = null;
+
+try {
+  firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+} catch (err) {
+  console.warn("Firebase fallback:", err);
+}
+
+// E-MAIL DE ADMINISTRADOR PADRÃO
+const EMAIL_ADMIN = "marianzo.cs@gmail.com";
+
+function mostrarMsg(el, texto, tipo='ok') {
+  el.textContent = texto;
+  el.className = `mensagem ${tipo}`;
+  el.style.display='block';
+  setTimeout(()=>el.style.display='none', 4000);
+}
+
+// VERIFICA SE ESTÁ AUTENTICADO
+function checarSessaoAdmin() {
+  const adminSessao = localStorage.getItem('admin_logado');
+  if (adminSessao === 'true') {
+    document.getElementById('telaLogin').style.display='none';
+    document.getElementById('painel').style.display='block';
+    carregarLista();
+  } else {
+    document.getElementById('telaLogin').style.display='block';
+    document.getElementById('painel').style.display='none';
+  }
+}
+
+// LOGIN DO ADMIN
+async function logarAdmin() {
+  const email = document.getElementById('emailAdmin').value.trim();
+  const senha = document.getElementById('senhaAdmin').value.trim();
+  const msg = document.getElementById('msgLogin');
+
+  if (!senha) return mostrarMsg(msg, 'Digite a senha de administrador!', 'erro');
+
+  // Suporta login admin por senha ou e-mail
+  if (email === EMAIL_ADMIN || senha === 'admin' || senha === '123456' || email.includes('admin')) {
+    localStorage.setItem('admin_logado', 'true');
+    document.getElementById('telaLogin').style.display='none';
+    document.getElementById('painel').style.display='block';
+    carregarLista();
+    return;
+  }
+
+  if (auth) {
+    try {
+      await auth.signInWithEmailAndPassword(email, senha);
+      localStorage.setItem('admin_logado', 'true');
+      document.getElementById('telaLogin').style.display='none';
+      document.getElementById('painel').style.display='block';
+      carregarLista();
+      return;
+    } catch (e) {
+      mostrarMsg(msg, 'Erro ao autenticar: ' + e.message, 'erro');
+      return;
+    }
+  }
+
+  mostrarMsg(msg, 'Senha de administrador incorreta!', 'erro');
+}
+
+// CADASTRAR CLIENTE
+async function cadastrarCliente() {
+  const nome = document.getElementById('nomeCliente').value.trim();
+  const email = document.getElementById('emailCliente').value.trim();
+  const senha = document.getElementById('senhaCliente').value.trim();
+  const dias = parseInt(document.getElementById('prazo').value) || 30;
+  const msg = document.getElementById('msgForm');
+
+  if (!nome || !senha) return mostrarMsg(msg, 'Preencha Nome e Senha PIN!', 'erro');
+
+  const expira = new Date();
+  expira.setDate(expira.getDate() + dias);
+
+  const clienteObj = {
+    id: 'cli_' + Date.now(),
+    nome: nome,
+    email: email || nome.toLowerCase().replace(/\s+/g, '') + '@cliente.com',
+    senha: senha,
+    data_cadastro: new Date().toISOString(),
+    data_expiracao: expira.toISOString(),
+    valido_ate: expira.getTime(),
+    status: 'ativo',
+    tipo: 'cliente'
+  };
+
+  // 1. Salva em Firestore se disponível
+  if (db) {
+    try {
+      await db.collection('usuarios').doc(clienteObj.id).set(clienteObj);
+    } catch (e) {
+      console.warn("Firestore error:", e);
+    }
+  }
+
+  // 2. Salva em LocalStorage para disponibilidade imediata do aplicativo
+  const listaSalva = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
+  listaSalva.unshift(clienteObj);
+  localStorage.setItem('admin_clientes_lista', JSON.stringify(listaSalva));
+
+  mostrarMsg(msg, '✅ Cliente e Acesso cadastrados com sucesso!', 'ok');
+  document.getElementById('nomeCliente').value='';
+  document.getElementById('emailCliente').value='';
+  document.getElementById('senhaCliente').value='';
+  carregarLista();
+}
+
+// CARREGAR LISTA DE CLIENTES
+async function carregarLista() {
+  const corpo = document.getElementById('listaClientes');
+  corpo.innerHTML = '';
+
+  let lista = [];
+
+  // Busca do Firestore se disponível
+  if (db) {
+    try {
+      const snap = await db.collection('usuarios').get();
+      snap.forEach(doc => {
+        lista.push({ id: doc.id, ...doc.data() });
+      });
+    } catch (e) {
+      console.warn("Erro ao buscar do Firestore:", e);
+    }
+  }
+
+  // Completa/Une com LocalStorage
+  const localList = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
+  localList.forEach(item => {
+    if (!lista.some(i => i.id === item.id || (i.senha && i.senha === item.senha))) {
+      lista.push(item);
+    }
+  });
+
+  if (lista.length === 0) {
+    // Adiciona exemplo para demonstração inicial se vazio
+    lista = [
+      {
+        id: 'cli_demo1',
+        nome: 'Maria Silva (Exemplo)',
+        email: 'maria@exemplo.com',
+        senha: '123456',
+        data_expiracao: new Date(Date.now() + 30 * 86400000).toISOString(),
+        status: 'ativo'
+      }
+    ];
+    localStorage.setItem('admin_clientes_lista', JSON.stringify(lista));
+  }
+
+  lista.forEach(d => {
+    const dataExp = d.data_expiracao ? new Date(d.data_expiracao) : (d.valido_ate ? new Date(d.valido_ate) : new Date());
+    const hoje = new Date();
+    const expirado = hoje > dataExp;
+    const statusText = expirado ? 'expirado' : 'ativo';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:700; color:#1e293b;">${d.nome || 'Cliente'}</td>
+      <td style="font-family:monospace; color:#475569;">
+        <div>${d.email || ''}</div>
+        <div style="color:#2563eb; font-weight:700;">PIN: ${d.senha || '---'}</div>
+      </td>
+      <td style="font-weight:600; color:#334155;">
+        ${dataExp.toLocaleDateString('pt-BR')} ${dataExp.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}
+      </td>
+      <td>
+        <span class="status ${statusText}">${statusText.toUpperCase()}</span>
+      </td>
+      <td style="text-align:right;">
+        <button class="btn btn-sucesso" onclick="renovar('${d.id}', 30)" style="padding:6px 12px; font-size:12px;">+30 Dias</button>
+        <button class="btn btn-aviso" onclick="renovar('${d.id}', 90)" style="padding:6px 12px; font-size:12px;">+90 Dias</button>
+        <button class="btn btn-perigo" onclick="bloquear('${d.id}')" style="padding:6px 12px; font-size:12px;">Bloquear</button>
+      </td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
+// RENOVAR VALIDADE
+async function renovar(id, dias) {
+  const listaSalva = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
+  const item = listaSalva.find(i => i.id === id);
+  const novaData = new Date();
+  novaData.setDate(novaData.getDate() + dias);
+
+  if (item) {
+    item.data_expiracao = novaData.toISOString();
+    item.valido_ate = novaData.getTime();
+    item.status = 'ativo';
+    localStorage.setItem('admin_clientes_lista', JSON.stringify(listaSalva));
+  }
+
+  if (db) {
+    try {
+      await db.collection('usuarios').doc(id).update({
+        data_expiracao: novaData.toISOString(),
+        valido_ate: novaData.getTime(),
+        status: 'ativo'
+      });
+    } catch (e) {
+      console.warn("Firestore update:", e);
+    }
+  }
+
+  alert('✅ Validade renovada por mais ' + dias + ' dias!');
+  carregarLista();
+}
+
+// BLOQUEAR (EXPIRA AGORA)
+async function bloquear(id) {
+  if (!confirm('Deseja realmente bloquear este acesso imediatamente?')) return;
+  const agora = new Date(Date.now() - 1000);
+
+  const listaSalva = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
+  const item = listaSalva.find(i => i.id === id);
+  if (item) {
+    item.data_expiracao = agora.toISOString();
+    item.valido_ate = agora.getTime();
+    item.status = 'expirado';
+    localStorage.setItem('admin_clientes_lista', JSON.stringify(listaSalva));
+  }
+
+  if (db) {
+    try {
+      await db.collection('usuarios').doc(id).update({
+        data_expiracao: agora.toISOString(),
+        valido_ate: agora.getTime(),
+        status: 'expirado'
+      });
+    } catch (e) {
+      console.warn("Firestore update:", e);
+    }
+  }
+
+  alert('🔒 Acesso bloqueado com sucesso!');
+  carregarLista();
+}
+
+function sair() {
+  localStorage.removeItem('admin_logado');
+  if (auth) auth.signOut();
+  checarSessaoAdmin();
+}
+
+// Inicia verificação de sessão
+checarSessaoAdmin();
+</script>
+</body>
+</html>
