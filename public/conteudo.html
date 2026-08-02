@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Área do Cliente</title>
+  <title>Área do Cliente – Vercel</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; font-family:Arial, sans-serif; }
     body { background:#f8fafc; padding:30px; max-width:900px; margin:0 auto; }
@@ -25,7 +25,7 @@
   <div class="dados-usuario">
     <strong>Nome:</strong> <span id="nomeUsuario">Cliente</span><br>
     <strong>E-mail:</strong> <span id="emailUsuario">---</span><br>
-    <strong>Validade até:</strong> <span id="validadeUsuario">---</span>
+    <strong>Status da Conta:</strong> <span id="validadeUsuario" style="color:#16a34a; font-weight:bold;">Acesso Liberado (Vercel)</span>
   </div>
   <hr style="margin:20px 0; border:none; border-top:1px solid #eee;">
   <p style="margin-bottom:15px; font-size:15px; color:#334155;">
@@ -34,67 +34,29 @@
   <a href="/" class="btn-app">🚀 Abrir Aplicativo Completo</a>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyBv7Vg0-IYNmDX9SZY7wZYCZKLbQMaoDF8",
-  authDomain: "oemagrecimentosaudavel.firebaseapp.com",
-  projectId: "oemagrecimentosaudavel",
-  storageBucket: "oemagrecimentosaudavel.firebasestorage.app",
-  messagingSenderId: "902556499129",
-  appId: "1:902556499129:web:736e2616dad2266f576f68"
-};
+window.addEventListener('DOMContentLoaded', () => {
+  const rawOk = localStorage.getItem('acesso_ok');
+  if (!rawOk) {
+    window.location.href = 'login.html';
+    return;
+  }
 
-let auth = null;
-let db = null;
-
-try {
-  firebase.initializeApp(firebaseConfig);
-  auth = firebase.auth();
-  db = firebase.firestore();
-} catch (e) {
-  console.warn("Firebase note:", e);
-}
-
-if (auth) {
-  auth.onAuthStateChanged(async usuario => {
-    if (!usuario) {
-      const ok = localStorage.getItem('acesso_ok');
-      if (!ok) return window.location.href='login.html';
-      return;
+  try {
+    const parsed = JSON.parse(rawOk);
+    if (parsed) {
+      document.getElementById('emailUsuario').textContent = parsed.email || 'cliente@exemplo.com';
+      document.getElementById('nomeUsuario').textContent = parsed.nome || (parsed.email ? parsed.email.split('@')[0] : 'Cliente');
     }
-    try {
-      if (db) {
-        const doc = await db.collection('usuarios').doc(usuario.uid).get();
-        if (doc.exists) {
-          const dados = doc.data();
-          if (dados.data_expiracao) {
-            const expira = dados.data_expiracao.toDate ? dados.data_expiracao.toDate() : new Date(dados.data_expiracao);
-            if (new Date() > expira) return sair();
-            document.getElementById('nomeUsuario').textContent = dados.nome || 'Cliente';
-            document.getElementById('emailUsuario').textContent = dados.email || usuario.email;
-            document.getElementById('validadeUsuario').textContent = expira.toLocaleDateString('pt-BR');
-            return;
-          }
-        }
-      }
-      document.getElementById('emailUsuario').textContent = usuario.email;
-    } catch { 
-      document.getElementById('emailUsuario').textContent = usuario.email;
-    }
-  });
-} else {
-  const ok = localStorage.getItem('acesso_ok');
-  if (!ok) window.location.href='login.html';
-}
+  } catch (e) {
+    document.getElementById('emailUsuario').textContent = 'Sessão Ativa';
+  }
+});
 
-function sair() { 
+function sair() {
   localStorage.removeItem('acesso_ok');
-  if (auth) auth.signOut(); 
-  window.location.href='login.html'; 
+  localStorage.removeItem('acesso_seguro_v2');
+  window.location.href = 'login.html';
 }
 </script>
 </body>

@@ -586,254 +586,56 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           <Lock className="w-7 h-7 text-[#2E7D32]" />
         </div>
 
-        <h1 className="logo text-xl sm:text-2xl font-extrabold text-[#2E7D32] mb-1 uppercase tracking-tight">
+        <h1 className="logo text-xl sm:text-2xl font-extrabold text-[#2E7D32] mb-4 uppercase tracking-tight">
           PROJETO EMAGRECIMENTO SAUDÁVEL
         </h1>
-        <p className="subtitulo text-xs sm:text-sm text-slate-500 mb-4 font-medium">
-          Acesso exclusivo com controle de validade
-        </p>
-
-        {/* BOTÃO GOOGLE */}
-        <button
-          type="button"
-          onClick={handleGoogleLogin}
-          className="w-full bg-white hover:bg-slate-50 border border-slate-300/90 hover:border-slate-400 text-slate-700 font-bold py-3 px-4 rounded-2xl text-sm transition-all flex items-center justify-center gap-3 shadow-2xs hover:shadow-xs cursor-pointer mb-3"
-        >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 shrink-0" />
-          <span>Entrar com Google</span>
-        </button>
-
-        <div className="flex items-center gap-2.5 my-3.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
-          <div className="flex-1 h-px bg-slate-200" />
-          <span>ou acesse por E-mail / PIN</span>
-          <div className="flex-1 h-px bg-slate-200" />
-        </div>
-
-        {/* Seletor de Abas (Modos de Acesso) - Substitui "Login Firebase" por "Login / Senha" */}
-        <div className="bg-slate-100/90 p-1 border border-slate-200/70 rounded-2xl flex gap-1 mb-5">
-          <button
-            type="button"
-            onClick={() => { setAbaAtiva("pin"); setMensagem(null); }}
-            className={`flex-1 py-2 px-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              abaAtiva === "pin"
-                ? "bg-white text-[#2E7D32] shadow-xs border border-slate-200/80"
-                : "text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            <KeyRound className="w-4 h-4 text-[#2E7D32]" />
-            <span>Senha PIN</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setAbaAtiva("login"); setMensagem(null); }}
-            className={`flex-1 py-2 px-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              abaAtiva === "login"
-                ? "bg-white text-[#2E7D32] shadow-xs border border-slate-200/80"
-                : "text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            <LogIn className="w-4 h-4 text-[#2E7D32]" />
-            <span>Login / Senha</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setAbaAtiva("cadastrar"); setMensagem(null); }}
-            className={`flex-1 py-2 px-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              abaAtiva === "cadastrar"
-                ? "bg-white text-[#2E7D32] shadow-xs border border-slate-200/80"
-                : "text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            <UserPlus className="w-4 h-4 text-[#2E7D32]" />
-            <span>Cadastrar</span>
-          </button>
-        </div>
-
-        {/* Quadro informativo de segurança */}
-        <div className="bg-[#F5F7FA] border border-slate-200/80 rounded-2xl p-3.5 mb-5 text-left text-xs text-[#607D8B] space-y-1.5 font-medium shadow-2xs">
-          <div className="flex items-center gap-2 text-[#263238] font-bold">
-            <ShieldCheck className="w-4 h-4 text-[#2E7D32] shrink-0" />
-            <span>Sistema de Acesso Restrito &amp; Seguro</span>
-          </div>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            As senhas comuns têm uso único e ficam vinculadas ao primeiro dispositivo utilizado. O acesso de administrador possui validade irrestrita.
-          </p>
-        </div>
 
         {/* FORMULÁRIO DE ACESSO */}
-        {abaAtiva === "pin" && (
-          <div className="grupo-campo text-left mb-4 space-y-3">
-            <div>
-              <label htmlFor="campoSenha" className="block text-xs font-bold text-[#263238] mb-1.5 uppercase tracking-wider">
-                Digite sua senha de acesso
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
-                  <KeyRound className="w-5 h-5" />
-                </div>
-                <input
-                  type={verSenha ? "text" : "password"}
-                  id="campoSenha"
-                  placeholder="Digite sua senha"
-                  autoComplete="off"
-                  disabled={bloqueado}
-                  value={senhaInput}
-                  onChange={(e) => {
-                    setSenhaInput(e.target.value);
-                    if (mensagem && mensagem.tipo === "erro") setMensagem(null);
-                  }}
-                  onKeyDown={handleKeyDown}
-                  className="w-full pl-11 pr-11 py-3 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-bold text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#2E7D32] focus:border-[#2E7D32] disabled:bg-slate-100 disabled:cursor-not-allowed transition-all"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={() => setVerSenha(!verSenha)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#607D8B] hover:text-[#263238] cursor-pointer"
-                  title={verSenha ? "Ocultar senha" : "Ver senha"}
-                >
-                  {verSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
+        <div className="grupo-campo text-left mb-4 space-y-3">
+          <div>
+            <label htmlFor="campoSenha" className="block text-xs font-bold text-[#263238] mb-1.5 uppercase tracking-wider">
+              Digite sua senha de acesso
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
+                <KeyRound className="w-5 h-5" />
               </div>
+              <input
+                type={verSenha ? "text" : "password"}
+                id="campoSenha"
+                placeholder="Digite sua senha"
+                autoComplete="off"
+                disabled={bloqueado}
+                value={senhaInput}
+                onChange={(e) => {
+                  setSenhaInput(e.target.value);
+                  if (mensagem && mensagem.tipo === "erro") setMensagem(null);
+                }}
+                onKeyDown={handleKeyDown}
+                className="w-full pl-11 pr-11 py-3 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-bold text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#2E7D32] focus:border-[#2E7D32] disabled:bg-slate-100 disabled:cursor-not-allowed transition-all"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setVerSenha(!verSenha)}
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#607D8B] hover:text-[#263238] cursor-pointer"
+                title={verSenha ? "Ocultar senha" : "Ver senha"}
+              >
+                {verSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
-
-            <button
-              id="btnEntrar"
-              onClick={tentarAcesso}
-              disabled={bloqueado}
-              className="btn-entrar w-full bg-gradient-to-r from-[#2E7D32] to-[#1976D2] hover:opacity-95 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-3.5 px-6 rounded-xl text-sm sm:text-base shadow-lg shadow-[#2E7D32]/20 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
-            >
-              <span>Acessar Sistema</span>
-              <ArrowRight className="w-5 h-5" />
-            </button>
           </div>
-        )}
 
-        {abaAtiva === "login" && (
-          <div className="grupo-campo text-left mb-4 space-y-3">
-            <div>
-              <label className="block text-xs font-bold text-[#263238] mb-1 uppercase tracking-wider">
-                E-mail ou Usuário
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="seu.email@exemplo.com"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="w-full pl-11 pr-4 py-2.5 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-[#263238] mb-1 uppercase tracking-wider">
-                Senha de Acesso
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
-                  <KeyRound className="w-5 h-5" />
-                </div>
-                <input
-                  type={verSenha ? "text" : "password"}
-                  placeholder="Digite sua senha"
-                  value={senhaInput}
-                  onChange={(e) => setSenhaInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="w-full pl-11 pr-11 py-2.5 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
-                />
-                <button
-                  type="button"
-                  onClick={() => setVerSenha(!verSenha)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#607D8B] hover:text-[#263238] cursor-pointer"
-                >
-                  {verSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              onClick={tentarAcesso}
-              disabled={bloqueado}
-              className="w-full bg-gradient-to-r from-[#2E7D32] to-[#1976D2] hover:opacity-95 active:scale-[0.98] disabled:opacity-50 text-white font-black py-3.5 px-6 rounded-xl text-sm sm:text-base shadow-lg shadow-[#2E7D32]/20 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
-            >
-              <span>Entrar com Login / Senha</span>
-              <ArrowRight className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-
-        {abaAtiva === "cadastrar" && (
-          <div className="grupo-campo text-left mb-4 space-y-3">
-            <div>
-              <label className="block text-xs font-bold text-[#263238] mb-1 uppercase tracking-wider">
-                Nome Completo
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
-                  <User className="w-5 h-5" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Seu nome"
-                  value={nomeInput}
-                  onChange={(e) => setNomeInput(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-[#263238] mb-1 uppercase tracking-wider">
-                E-mail ou Usuário
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="seu.email@exemplo.com"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-[#263238] mb-1 uppercase tracking-wider">
-                Senha de Acesso Desejada
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#607D8B]">
-                  <KeyRound className="w-5 h-5" />
-                </div>
-                <input
-                  type="password"
-                  placeholder="Crie uma senha de acesso"
-                  value={senhaInput}
-                  onChange={(e) => setSenhaInput(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 bg-[#F5F7FA] border border-[#B0BEC5] rounded-xl text-[#263238] placeholder:text-slate-400 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
-                />
-              </div>
-            </div>
-
-            <button
-              onClick={handleCadastrar}
-              className="w-full bg-gradient-to-r from-[#2E7D32] to-[#1976D2] hover:opacity-95 text-white font-black py-3.5 px-6 rounded-xl text-sm sm:text-base shadow-lg shadow-[#2E7D32]/20 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
-            >
-              <span>Solicitar / Cadastrar Acesso</span>
-              <ArrowRight className="w-5 h-5" />
-            </button>
-          </div>
-        )}
+          <button
+            id="btnEntrar"
+            onClick={tentarAcesso}
+            disabled={bloqueado}
+            className="btn-entrar w-full bg-gradient-to-r from-[#2E7D32] to-[#1976D2] hover:opacity-95 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-3.5 px-6 rounded-xl text-sm sm:text-base shadow-lg shadow-[#2E7D32]/20 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+          >
+            <span>Acessar Sistema</span>
+            <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* Mensagem de Erro / Aviso / Sucesso */}
         {mensagem && (
@@ -860,84 +662,6 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           </motion.div>
         )}
       </motion.div>
-
-      {/* MODAL DE ENTRADA DO GOOGLE */}
-      {modalGoogleAberto && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-[10000] p-4 font-sans">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center border border-slate-100 relative overflow-hidden"
-          >
-            {/* Faixa Superior Google de 4 Cores */}
-            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#ea4335] via-[#fbbc05] via-[#34a853] to-[#4285f4]" />
-
-            <div className="w-14 h-14 bg-slate-100/90 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner border border-slate-200/60">
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-7 h-7" />
-            </div>
-
-            <h3 className="text-lg font-extrabold text-slate-800 mb-1">Entrar com Conta Google</h3>
-            <p className="text-xs text-slate-500 mb-5 font-medium leading-relaxed">
-              Informe o seu e-mail do Google (Gmail) para autenticar e liberar seu acesso ao sistema
-            </p>
-
-            <div className="text-left mb-4">
-              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                E-mail de Acesso do Google
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <input
-                  type="email"
-                  placeholder="seu.email@gmail.com"
-                  value={googleEmailInput}
-                  onChange={(e) => setGoogleEmailInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") confirmarLoginGoogle();
-                  }}
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            {googleMensagem && (
-              <div
-                className={`p-3 rounded-xl text-xs font-bold mb-4 ${
-                  googleMensagem.tipo === "sucesso"
-                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                    : googleMensagem.tipo === "aviso"
-                    ? "bg-amber-50 text-amber-800 border border-amber-200"
-                    : "bg-rose-50 text-rose-800 border border-rose-200"
-                }`}
-              >
-                {googleMensagem.texto}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={confirmarLoginGoogle}
-                className="w-full bg-[#4285f4] hover:bg-blue-600 text-white font-extrabold py-3 px-4 rounded-xl text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span>Acessar com esta Conta Google</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setModalGoogleAberto(false)}
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 px-4 rounded-xl text-xs transition-all cursor-pointer"
-              >
-                Cancelar
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 }
