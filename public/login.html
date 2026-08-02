@@ -60,8 +60,27 @@ function mostrarMensagem(texto, tipo = 'erro') {
   }
 }
 
-// Verifica acesso ativo no carregamento
+// Verifica acesso ativo no carregamento e parâmetros de URL
 window.addEventListener('DOMContentLoaded', () => {
+  // Leitura de parâmetros da URL (ex: ?codigo=001&pin=1234)
+  const urlParams = new URLSearchParams(window.location.search);
+  const pinParam = urlParams.get('pin');
+  const emailParam = urlParams.get('email');
+
+  if (emailParam) {
+    const elEmail = document.getElementById('emailCliente');
+    if (elEmail) elEmail.value = emailParam;
+  }
+
+  if (pinParam) {
+    const elSenha = document.getElementById('senhaCliente');
+    if (elSenha) {
+      elSenha.value = pinParam;
+      fazerLogin();
+      return;
+    }
+  }
+
   const rawOk = localStorage.getItem('acesso_ok');
   if (rawOk) {
     try {
