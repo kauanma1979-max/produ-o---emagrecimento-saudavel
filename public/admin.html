@@ -7,37 +7,45 @@
   <style>
     * { margin:0; padding:0; box-sizing:border-box; font-family:Arial, sans-serif; }
     body { background:#f0f2f5; padding:20px; }
-    .container { max-width:1100px; margin:0 auto; }
+    .container { max-width:1200px; margin:0 auto; }
     .cabecalho { display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; }
-    h1 { color:#1e40af; font-size:24px; }
-    .btn-sair { padding:10px 20px; background:#dc2626; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold; }
-    .caixa-form { background:white; padding:20px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); margin-bottom:25px; }
-    .linha { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
-    .campo { flex:1; min-width:180px; }
-    label { display:block; margin-bottom:6px; font-weight:500; color:#374151; }
-    input, select { width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; font-size:15px; }
-    .btn { padding:10px 18px; border:none; border-radius:6px; cursor:pointer; font-weight:500; }
-    .btn-primario { background:#2563eb; color:white; font-weight:bold; }
-    .btn-primario:hover { background:#1d4ed8; }
+    h1 { color:#1e40af; font-size:26px; }
+    .btn { padding:10px 16px; border:none; border-radius:8px; cursor:pointer; font-weight:600; transition:all 0.2s; }
+    .btn:hover { transform:translateY(-1px); }
+    .btn-sair { background:#dc2626; color:white; }
+    .btn-primario { background:#2563eb; color:white; }
     .btn-sucesso { background:#16a34a; color:white; }
-    .btn-perigo { background:#dc2626; color:white; }
+    .btn-perigo { background:#ef4444; color:white; }
     .btn-aviso { background:#f59e0b; color:white; }
-    .tabela { width:100%; border-collapse:collapse; background:white; border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
-    th, td { padding:12px; text-align:left; border-bottom:1px solid #eee; font-size:14px; }
+    .btn-pequeno { padding:6px 10px; font-size:13px; margin:2px; }
+    .caixa-form { background:white; padding:22px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.08); margin-bottom:25px; }
+    .linha { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px; }
+    .campo { flex:1; min-width:180px; }
+    label { display:block; margin-bottom:6px; font-weight:500; color:#374151; font-size:14px; }
+    input, select { width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; font-size:15px; }
+    .barra-busca { margin-bottom:15px; display:flex; align-items:center; }
+    .barra-busca input { max-width:350px; }
+    .tabela { width:100%; border-collapse:collapse; background:white; border-radius:12px; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,0.08); }
+    th, td { padding:12px; text-align:left; border-bottom:1px solid #f1f5f9; font-size:14px; }
     th { background:#f8fafc; font-weight:600; color:#1e40af; }
-    .status { padding:4px 8px; border-radius:4px; font-size:12px; font-weight:500; }
+    .status { padding:4px 8px; border-radius:4px; font-size:12px; font-weight:600; }
     .ativo { background:#dcfce7; color:#166534; }
     .expirado { background:#fee2e2; color:#dc2626; }
     .mensagem { margin-top:12px; padding:10px; border-radius:6px; display:none; }
     .erro { background:#fee2e2; color:#dc2626; border:1px solid #fecaca; }
     .ok { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
-    .area-login { max-width:420px; margin:100px auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+    .area-login { max-width:420px; margin:80px auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); }
     .area-login h2 { text-align:center; margin-bottom:20px; color:#1e40af; }
-    .dados-criados { margin-top:12px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; display:none; line-height:1.6; font-size:14px; color:#166534; }
+    .dados-gerados { margin-top:12px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; display:none; line-height:1.6; font-size:14px; color:#166534; }
+    .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:999; }
+    .modal-conteudo { background:white; padding:25px; border-radius:12px; max-width:450px; width:90%; }
+    .modal-conteudo h3 { margin-bottom:15px; color:#1e40af; }
+    .botoes-modal { display:flex; gap:10px; margin-top:15px; justify-content:flex-end; }
   </style>
 </head>
 <body>
 
+<!-- TELA DE LOGIN ADMIN -->
 <div id="telaLogin" class="area-login">
   <h2>Acesso Administrativo</h2>
   <div class="campo">
@@ -52,39 +60,49 @@
   <div id="msgLogin" class="mensagem"></div>
 </div>
 
+<!-- PAINEL PRINCIPAL -->
 <div id="painel" class="container" style="display:none;">
   <div class="cabecalho">
-    <h1>📋 Painel de Controle – Clientes e Acessos</h1>
-    <button class="btn-sair" onclick="sair()">Sair</button>
+    <h1>📋 Painel de Controle Completo</h1>
+    <button class="btn btn-sair" onclick="sair()">Sair do Painel</button>
   </div>
 
+  <!-- FORMULÁRIO DE CADASTRO -->
   <div class="caixa-form">
-    <h3 style="margin-bottom:15px; color:#1e40af;">➕ Cadastrar Novo Cliente (Automático)</h3>
+    <h3 style="margin-bottom:15px; color:#1e40af;">➕ Cadastrar Novo Cliente</h3>
     <div class="linha">
       <div class="campo">
         <label>Nome Completo</label>
-        <input type="text" id="nomeCliente" placeholder="Nome do cliente">
+        <input type="text" id="nomeCliente" placeholder="Nome completo do cliente">
       </div>
       <div class="campo">
         <label>E-mail de Acesso</label>
         <input type="email" id="emailCliente" placeholder="cliente@email.com">
       </div>
       <div class="campo">
-        <label>Validade</label>
+        <label>Validade do Acesso</label>
         <select id="prazo">
           <option value="7">7 Dias</option>
           <option value="15">15 Dias</option>
           <option value="30" selected>30 Dias</option>
           <option value="90">90 Dias</option>
+          <option value="180">6 Meses</option>
           <option value="365">1 Ano</option>
         </select>
       </div>
       <button class="btn btn-primario" onclick="cadastrarCliente()">Cadastrar Acesso</button>
     </div>
-    <div id="dadosCriados" class="dados-criados"></div>
+    <div id="dadosGerados" class="dados-gerados"></div>
     <div id="msgForm" class="mensagem"></div>
   </div>
 
+  <!-- BUSCA E AÇÕES GERAIS -->
+  <div class="caixa-form barra-busca" style="padding:15px;">
+    <input type="text" id="busca" placeholder="🔍 Buscar por nome ou e-mail..." oninput="filtrarLista()">
+    <button class="btn btn-aviso" style="margin-left:10px;" onclick="exportarLista()">📤 Exportar Lista CSV</button>
+  </div>
+
+  <!-- TABELA COMPLETA -->
   <table class="tabela">
     <thead>
       <tr>
@@ -92,11 +110,40 @@
         <th>E-mail</th>
         <th>Validade Até</th>
         <th>Status</th>
-        <th>Ações</th>
+        <th>Ações de Controle</th>
       </tr>
     </thead>
     <tbody id="listaClientes"></tbody>
   </table>
+</div>
+
+<!-- MODAL DE EDIÇÃO -->
+<div id="modalEditar" class="modal">
+  <div class="modal-conteudo">
+    <h3>✏️ Editar Cliente</h3>
+    <input type="hidden" id="editId">
+    <div class="campo" style="margin-bottom:12px;">
+      <label>Nome Completo</label>
+      <input type="text" id="editNome">
+    </div>
+    <div class="campo" style="margin-bottom:12px;">
+      <label>E-mail</label>
+      <input type="email" id="editEmail">
+    </div>
+    <div class="campo">
+      <label>Renovar / Adicionar Validade</label>
+      <select id="editPrazo">
+        <option value="30" selected>+30 Dias</option>
+        <option value="90">+90 Dias</option>
+        <option value="180">+6 Meses</option>
+        <option value="365">+1 Ano</option>
+      </select>
+    </div>
+    <div class="botoes-modal">
+      <button class="btn" onclick="fecharModal()" style="background:#e2e8f0; color:#334155;">Cancelar</button>
+      <button class="btn btn-primario" onclick="salvarEdicao()">Salvar Alterações</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -121,26 +168,27 @@ try {
   auth = firebase.auth();
   db = firebase.firestore();
 } catch (e) {
-  console.warn("Firebase Init:", e);
+  console.warn("Firebase Init note:", e);
 }
 
 const EMAIL_ADMIN = "kauanma.1979@gmail.com";
+let listaCompleta = [];
 
 function mostrarMsg(el, texto, tipo='ok') {
   el.textContent = texto;
   el.className = `mensagem ${tipo}`;
   el.style.display='block';
-  setTimeout(()=>el.style.display='none', 6000);
+  setTimeout(()=>el.style.display='none',6000);
 }
 
 function gerarSenha(tamanho=6) {
-  const caracteres = '0123456789';
-  let senha = '';
-  for(let i=0; i<tamanho; i++) senha += caracteres.charAt(Math.floor(Math.random()*caracteres.length));
-  return senha;
+  const c = '0123456789'; 
+  let s='';
+  for(let i=0;i<tamanho;i++) s += c[Math.floor(Math.random()*c.length)];
+  return s;
 }
 
-function checarSessao() {
+function checarSessaoLocal() {
   const sessaoLocal = localStorage.getItem('admin_logado');
   if (sessaoLocal === 'true') {
     document.getElementById('telaLogin').style.display='none';
@@ -157,14 +205,14 @@ if (auth) {
       localStorage.setItem('admin_logado', 'true');
       document.getElementById('telaLogin').style.display='none';
       document.getElementById('painel').style.display='block';
-      carregarLista();
-    } else if (!checarSessao()) {
+      await carregarLista();
+    } else if (!checarSessaoLocal()) {
       document.getElementById('telaLogin').style.display='block';
       document.getElementById('painel').style.display='none';
     }
   });
 } else {
-  checarSessao();
+  checarSessaoLocal();
 }
 
 async function logarAdmin() {
@@ -172,12 +220,12 @@ async function logarAdmin() {
   const senha = document.getElementById('senhaAdmin').value;
   const msg = document.getElementById('msgLogin');
   if (email !== EMAIL_ADMIN && !email.includes("admin")) return mostrarMsg(msg, 'Acesso apenas para administrador!', 'erro');
-
+  
   if (senha === 'admin' || senha === '123456' || senha.length > 0) {
     localStorage.setItem('admin_logado', 'true');
     document.getElementById('telaLogin').style.display='none';
     document.getElementById('painel').style.display='block';
-    carregarLista();
+    await carregarLista();
     return;
   }
 
@@ -187,9 +235,9 @@ async function logarAdmin() {
       localStorage.setItem('admin_logado', 'true');
       document.getElementById('telaLogin').style.display='none';
       document.getElementById('painel').style.display='block';
-      carregarLista();
+      await carregarLista();
     } catch (e) { 
-      mostrarMsg(msg, 'Erro de autenticação: ' + e.message, 'erro'); 
+      mostrarMsg(msg, 'Erro: ' + e.message, 'erro'); 
     }
   } else {
     mostrarMsg(msg, 'Erro na conexão de autenticação', 'erro');
@@ -201,19 +249,19 @@ async function cadastrarCliente() {
   const email = document.getElementById('emailCliente').value.trim();
   const dias = parseInt(document.getElementById('prazo').value) || 30;
   const msg = document.getElementById('msgForm');
-  const divDados = document.getElementById('dadosCriados');
+  const div = document.getElementById('dadosGerados');
 
   if (!nome || !email) return mostrarMsg(msg, 'Preencha Nome e E-mail!', 'erro');
 
-  const senhaGerada = gerarSenha();
-  const expira = new Date();
+  const senha = gerarSenha();
+  const expira = new Date(); 
   expira.setDate(expira.getDate() + dias);
 
   const clienteObj = {
     id: 'cli_' + Date.now(),
     nome: nome,
     email: email,
-    senha: senhaGerada,
+    senha: senha,
     data_cadastro: new Date().toISOString(),
     data_expiracao: expira.toISOString(),
     valido_ate: expira.getTime(),
@@ -222,17 +270,16 @@ async function cadastrarCliente() {
   };
 
   try {
-    // Tenta criar no Firebase Auth se disponível
     if (auth) {
       try {
-        const cred = await auth.createUserWithEmailAndPassword(email, senhaGerada);
+        const cred = await auth.createUserWithEmailAndPassword(email, senha);
         if (db) {
           await db.collection('usuarios').doc(cred.user.uid).set({
-            nome: nome, email: email, senha: senhaGerada, data_cadastro: new Date(), data_expiracao: expira, tipo: 'cliente'
+            nome, email, senha, data_cadastro: new Date(), data_expiracao: expira, tipo: 'cliente'
           });
         }
       } catch (authErr) {
-        console.warn("Auth Firebase note:", authErr.message);
+        console.warn("Auth note:", authErr.message);
         if (db) {
           await db.collection('usuarios').doc(clienteObj.id).set(clienteObj);
         }
@@ -241,34 +288,42 @@ async function cadastrarCliente() {
       await db.collection('usuarios').doc(clienteObj.id).set(clienteObj);
     }
 
-    // Armazena no LocalStorage para redundância e disponibilidade imediata
-    const listaSalva = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
-    listaSalva.unshift(clienteObj);
-    localStorage.setItem('admin_clientes_lista', JSON.stringify(listaSalva));
+    const localList = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
+    localList.unshift(clienteObj);
+    localStorage.setItem('admin_clientes_lista', JSON.stringify(localList));
 
-    divDados.innerHTML = `✅ <strong>ACESSO CRIADO COM SUCESSO!</strong><br>Nome: ${nome}<br>E-mail: ${email}<br>Senha Gerada: <strong>${senhaGerada}</strong><br>Validade: ${dias} dias (${expira.toLocaleDateString('pt-BR')})`;
-    divDados.style.display='block';
-    mostrarMsg(msg, 'Acesso e senha gerados automaticamente!', 'ok');
+    div.innerHTML = `✅ <strong>ACESSO CRIADO COM SUCESSO!</strong><br>Nome: ${nome}<br>E-mail: ${email}<br>Senha PIN Gerada: <strong>${senha}</strong><br>Validade: ${dias} dias (${expira.toLocaleDateString('pt-BR')})`;
+    div.style.display='block';
+    mostrarMsg(msg, 'Cadastrado com sucesso!', 'ok');
     document.getElementById('nomeCliente').value='';
     document.getElementById('emailCliente').value='';
-    carregarLista();
-  } catch (e) {
-    mostrarMsg(msg, 'Erro ao criar: ' + e.message, 'erro');
-    divDados.style.display='none';
+    await carregarLista();
+  } catch (e) { 
+    mostrarMsg(msg, 'Erro: ' + e.message, 'erro'); 
+    div.style.display='none'; 
   }
 }
 
 async function carregarLista() {
   const corpo = document.getElementById('listaClientes');
-  corpo.innerHTML = '';
-
-  let lista = [];
+  corpo.innerHTML = ''; 
+  listaCompleta = [];
 
   if (db) {
     try {
       const snap = await db.collection('usuarios').get();
       snap.forEach(doc => {
-        lista.push({ id: doc.id, ...doc.data() });
+        const d = doc.data();
+        if (d.tipo === 'cliente' || !d.tipo) {
+          let exp;
+          if (d.data_expiracao) {
+            exp = d.data_expiracao.toDate ? d.data_expiracao.toDate() : new Date(d.data_expiracao);
+          } else {
+            exp = new Date();
+          }
+          const status = new Date() > exp ? 'expirado' : 'ativo';
+          listaCompleta.push({ id: doc.id, nome: d.nome || 'Cliente', email: d.email || '', senha: d.senha || '---', expiracao: exp, status: status });
+        }
       });
     } catch (e) {
       console.warn("Firestore fetch:", e);
@@ -277,95 +332,165 @@ async function carregarLista() {
 
   const localList = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
   localList.forEach(item => {
-    if (!lista.some(i => i.id === item.id || (i.email && i.email === item.email))) {
-      lista.push(item);
+    if (!listaCompleta.some(i => i.id === item.id || (i.email && i.email === item.email))) {
+      let exp = item.data_expiracao ? new Date(item.data_expiracao) : new Date();
+      const status = new Date() > exp ? 'expirado' : 'ativo';
+      listaCompleta.push({ id: item.id, nome: item.nome, email: item.email, senha: item.senha || '---', expiracao: exp, status: status });
     }
   });
 
-  if (lista.length === 0) {
-    lista = [
-      {
-        id: 'cli_demo1',
-        nome: 'Maria Silva (Exemplo)',
-        email: 'maria@exemplo.com',
-        senha: '123456',
-        data_expiracao: new Date(Date.now() + 30 * 86400000).toISOString(),
-        status: 'ativo'
-      }
-    ];
-    localStorage.setItem('admin_clientes_lista', JSON.stringify(lista));
+  if (listaCompleta.length === 0) {
+    const demo = {
+      id: 'cli_demo1',
+      nome: 'Maria Silva (Exemplo)',
+      email: 'maria@exemplo.com',
+      senha: '123456',
+      expiracao: new Date(Date.now() + 30 * 86400000),
+      status: 'ativo'
+    };
+    listaCompleta.push(demo);
+    localStorage.setItem('admin_clientes_lista', JSON.stringify([demo]));
   }
 
-  lista.forEach(d => {
-    let expira;
-    if (d.data_expiracao) {
-      expira = d.data_expiracao.toDate ? d.data_expiracao.toDate() : new Date(d.data_expiracao);
-    } else {
-      expira = new Date();
-    }
+  renderizarTabela(listaCompleta);
+}
 
-    const hoje = new Date();
-    const expirado = hoje > expira;
-    const statusText = expirado ? 'expirado' : 'ativo';
-    const id = d.id;
+function renderizarTabela(dados) {
+  const corpo = document.getElementById('listaClientes');
+  corpo.innerHTML = '';
 
+  dados.forEach(item => {
     const linha = corpo.insertRow();
-    linha.insertCell(0).textContent = d.nome || 'Cliente';
-    linha.insertCell(1).innerHTML = `${d.email || ''} ${d.senha ? `<br><small style="color:#2563eb; font-weight:bold;">PIN: ${d.senha}</small>` : ''}`;
-    linha.insertCell(2).textContent = expira.toLocaleDateString('pt-BR') + ' ' + expira.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-    linha.insertCell(3).innerHTML = `<span class="status ${statusText}">${statusText.toUpperCase()}</span>`;
+    linha.insertCell(0).innerHTML = `<strong style="color:#1e293b;">${item.nome}</strong>`;
+    linha.insertCell(1).innerHTML = `${item.email} <br><small style="color:#2563eb; font-weight:bold;">PIN: ${item.senha || '---'}</small>`;
+    linha.insertCell(2).textContent = item.expiracao.toLocaleDateString('pt-BR') + ' ' + item.expiracao.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    linha.insertCell(3).innerHTML = `<span class="status ${item.status}">${item.status.toUpperCase()}</span>`;
     linha.insertCell(4).innerHTML = `
-      <button class="btn btn-sucesso" onclick="renovar('${id}',30)" style="padding:6px 10px; font-size:13px;">+30d</button>
-      <button class="btn btn-aviso" onclick="renovar('${id}',90)" style="padding:6px 10px; font-size:13px;">+90d</button>
-      <button class="btn btn-perigo" onclick="bloquear('${id}')" style="padding:6px 10px; font-size:13px;">Bloquear</button>
+      <button class="btn btn-aviso btn-pequeno" onclick="abrirEditar('${item.id}','${item.nome.replace(/'/g, "\\'")}','${item.email}')">✏️ Editar</button>
+      <button class="btn btn-sucesso btn-pequeno" onclick="renovar('${item.id}',30)">+30d</button>
+      <button class="btn btn-perigo btn-pequeno" onclick="excluir('${item.id}','${item.email}')">🗑️ Excluir</button>
     `;
   });
 }
 
+function filtrarLista() {
+  const termo = document.getElementById('busca').value.toLowerCase().trim();
+  if (!termo) {
+    renderizarTabela(listaCompleta);
+    return;
+  }
+  const filtrados = listaCompleta.filter(i => 
+    (i.nome && i.nome.toLowerCase().includes(termo)) || 
+    (i.email && i.email.toLowerCase().includes(termo))
+  );
+  renderizarTabela(filtrados);
+}
+
+function abrirEditar(id, nome, email) {
+  document.getElementById('editId').value = id;
+  document.getElementById('editNome').value = nome;
+  document.getElementById('editEmail').value = email;
+  document.getElementById('modalEditar').style.display='flex';
+}
+
+function fecharModal() { 
+  document.getElementById('modalEditar').style.display='none'; 
+}
+
+async function salvarEdicao() {
+  const id = document.getElementById('editId').value;
+  const nome = document.getElementById('editNome').value.trim();
+  const email = document.getElementById('editEmail').value.trim();
+  const dias = parseInt(document.getElementById('editPrazo').value) || 30;
+
+  if (!nome || !email) return alert('Preencha todos os campos!');
+
+  const novaData = new Date(); 
+  novaData.setDate(novaData.getDate() + dias);
+
+  const itemLocal = listaCompleta.find(i => i.id === id);
+  if (itemLocal) {
+    itemLocal.nome = nome;
+    itemLocal.email = email;
+    itemLocal.expiracao = novaData;
+    itemLocal.status = 'ativo';
+  }
+
+  const localList = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
+  const localItem = localList.find(i => i.id === id);
+  if (localItem) {
+    localItem.nome = nome;
+    localItem.email = email;
+    localItem.data_expiracao = novaData.toISOString();
+    localStorage.setItem('admin_clientes_lista', JSON.stringify(localList));
+  }
+
+  if (db) {
+    try {
+      await db.collection('usuarios').doc(id).update({ nome, email, data_expiracao: novaData });
+    } catch (e) { 
+      console.warn("Update note:", e.message); 
+    }
+  }
+
+  alert('✅ Dados atualizados com sucesso!');
+  fecharModal(); 
+  await carregarLista();
+}
+
 async function renovar(uid, dias) {
-  const nova = new Date();
+  if (!confirm(`Adicionar ${dias} dias de validade?`)) return;
+  const nova = new Date(); 
   nova.setDate(nova.getDate() + dias);
 
-  const listaSalva = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
-  const item = listaSalva.find(i => i.id === uid);
-  if (item) {
-    item.data_expiracao = nova.toISOString();
-    localStorage.setItem('admin_clientes_lista', JSON.stringify(listaSalva));
+  const localList = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
+  const localItem = localList.find(i => i.id === uid);
+  if (localItem) {
+    localItem.data_expiracao = nova.toISOString();
+    localStorage.setItem('admin_clientes_lista', JSON.stringify(localList));
   }
 
   if (db) {
     try {
       await db.collection('usuarios').doc(uid).update({ data_expiracao: nova });
     } catch (e) {
-      console.warn("Firestore update:", e);
+      console.warn("Renovar error:", e);
     }
   }
 
-  alert('✅ Validade atualizada com sucesso!');
-  carregarLista();
+  await carregarLista(); 
+  alert('✅ Validade renovada com sucesso!');
 }
 
-async function bloquear(uid) {
-  if (!confirm('Bloquear esse acesso agora?')) return;
-  const agora = new Date(Date.now() - 1000);
+async function excluir(uid, email) {
+  if (!confirm(`EXCLUIR definitivamente o acesso de ${email}? Essa ação não tem volta!`)) return;
 
-  const listaSalva = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
-  const item = listaSalva.find(i => i.id === uid);
-  if (item) {
-    item.data_expiracao = agora.toISOString();
-    localStorage.setItem('admin_clientes_lista', JSON.stringify(listaSalva));
-  }
+  const localList = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
+  const novaLocal = localList.filter(i => i.id !== uid);
+  localStorage.setItem('admin_clientes_lista', JSON.stringify(novaLocal));
 
   if (db) {
     try {
-      await db.collection('usuarios').doc(uid).update({ data_expiracao: agora });
-    } catch (e) {
-      console.warn("Firestore update:", e);
+      await db.collection('usuarios').doc(uid).delete();
+    } catch (e) { 
+      console.warn("Delete note:", e.message); 
     }
   }
 
-  alert('✅ Acesso bloqueado!');
-  carregarLista();
+  await carregarLista(); 
+  alert('✅ Acesso excluído com sucesso!');
+}
+
+function exportarLista() {
+  let texto = 'NOME;E-MAIL;SENHA;VALIDADE;STATUS\n';
+  listaCompleta.forEach(i => {
+    texto += `${i.nome};${i.email};${i.senha || '---'};${i.expiracao.toLocaleDateString('pt-BR')};${i.status.toUpperCase()}\n`;
+  });
+  const blob = new Blob([texto], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'lista_clientes.csv';
+  a.click();
 }
 
 function sair() { 
@@ -374,8 +499,6 @@ function sair() {
   document.getElementById('telaLogin').style.display='block';
   document.getElementById('painel').style.display='none';
 }
-
-checarSessao();
 </script>
 </body>
 </html>
