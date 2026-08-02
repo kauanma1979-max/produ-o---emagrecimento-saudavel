@@ -51,7 +51,7 @@ import { carregarDadosClienteSupabase } from "./lib/supabase";
 
 export default function App() {
   const verificarSessaoAtiva = (): boolean => {
-    // 1. Checa a chave de acesso v1 com suporte a Administrador Infinito e Usuários Comuns
+    // 1. Checa a chave de acesso v1/v2 com suporte a Administrador Infinito e Usuários Comuns
     const rawAcesso = localStorage.getItem(CONFIG.CHAVE_ACESSO);
     if (rawAcesso) {
       try {
@@ -76,6 +76,7 @@ export default function App() {
           localStorage.removeItem("acesso_projeto");
           localStorage.removeItem("acesso_app_temporario");
           localStorage.removeItem("app_liberado");
+          localStorage.removeItem("acesso_ok");
           return false;
         }
         return true;
@@ -84,7 +85,12 @@ export default function App() {
       }
     }
 
-    // 2. Fallback para chaves anteriores
+    // 2. Checa se há acesso liberado via login HTML
+    if (localStorage.getItem("acesso_ok")) {
+      return true;
+    }
+
+    // 3. Fallback para chaves anteriores
     const TEMPO_VALIDADE = 6 * 60 * 60 * 1000;
     const dadosAntigos = localStorage.getItem("acesso_projeto") || localStorage.getItem("acesso_app_temporario");
 
@@ -155,12 +161,6 @@ export default function App() {
     localStorage.removeItem("acesso_projeto");
     localStorage.removeItem("acesso_app_temporario");
     localStorage.removeItem("app_liberado");
-    localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
-    localStorage.removeItem(CONFIG.CHAVE_TENTATIVAS);
-    localStorage.removeItem("bloqueio_acesso");
-    localStorage.removeItem("tentativas_acesso");
-    localStorage.removeItem("bloq");
-    localStorage.removeItem("tent");
   };
 
   const handleBloquearApp = () => {
@@ -170,7 +170,6 @@ export default function App() {
   };
 
   const handleSairApp = () => {
-    // Encerra a sessão e bloqueia o app sem baixar backup automático
     limparSessaoCompleta();
     setAppLiberado(false);
     setMobileMenuOpen(false);

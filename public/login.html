@@ -71,147 +71,103 @@ const firebaseConfig = {
   appId: "1:902556499129:web:736e2616dad2266f576f68"
 };
 
-let auth = null;
-let db = null;
-let provedorGoogle = null;
+try { firebase.initializeApp(firebaseConfig); } 
+catch (e) { console.error("Erro Firebase:", e); }
 
-try {
-  firebase.initializeApp(firebaseConfig);
-  auth = firebase.auth();
-  db = firebase.firestore();
-  provedorGoogle = new firebase.auth.GoogleAuthProvider();
-} catch (e) {
-  console.warn("Firebase config error:", e);
+const auth = typeof firebase !== 'undefined' && firebase.auth ? firebase.auth() : null;
+const db = typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null;
+const provedorGoogle = typeof firebase !== 'undefined' && firebase.auth ? new firebase.auth.GoogleAuthProvider() : null;
+
+function mostrarMensagem(texto, tipo='erro') {
+  const el = document.getElementById('mensagem');
+  if (el) {
+    el.className = `mensagem ${tipo}`;
+    el.textContent = texto;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 6000);
+  }
+  alert(texto);
 }
 
-function mostrarMensagem(el, texto, tipo='erro') {
-  el.className = `mensagem ${tipo}`;
-  el.textContent = texto;
-  el.style.display='block';
-  setTimeout(()=>el.style.display='none',6000);
-}
-
+// VERIFICAÇÃO APÓS LOGAR
 if (auth) {
   auth.onAuthStateChanged(async usuario => {
     if (!usuario) return;
-    const msg = document.getElementById('mensagem');
     try {
       if (db) {
+        // Busca os dados do usuário
         const doc = await db.collection('usuarios').doc(usuario.uid).get();
-        if (doc.exists) {
-          const dados = doc.data();
-          if (dados.data_expiracao) {
-            const expira = dados.data_expiracao.toDate ? dados.data_expiracao.toDate() : new Date(dados.data_expiracao);
-            if (new Date() > expira) {
-              await auth.signOut();
-              return mostrarMensagem(msg, '⚠️ Seu acesso expirou! Contate para renovar.', 'erro');
-            }
+        if (!doc.exists) {
+          await auth.signOut();
+          return mostrarMensagem('Cadastro não encontrado! Contate o admin.', 'erro');
+        }
+        const dados = doc.data();
+        // Checa só a validade
+        if (dados && dados.data_expiracao) {
+          const expira = dados.data_expiracao.toDate ? dados.data_expiracao.toDate() : new Date(dados.data_expiracao);
+          if (new Date() > expira) {
+            await auth.signOut();
+            return mostrarMensagem('⚠️ Acesso expirado! Contate para renovar.', 'erro');
           }
         }
       }
-
-      localStorage.setItem('acesso_ok', JSON.stringify({ tipo: 'auth', email: usuario.email, timestamp: Date.now() }));
-      mostrarMensagem(msg, '✅ Acesso liberado! Entrando...', 'sucesso');
-      setTimeout(() => {
-        window.location.href = 'conteudo.html';
-      }, 1200);
+      // Se tudo certo, entra
+      localStorage.setItem('acesso_ok', JSON.stringify({ tipo: 'firebase', email: usuario.email, timestamp: Date.now() }));
+      mostrarMensagem('✅ Acesso liberado!', 'sucesso');
+      setTimeout(() => { window.location.href = 'conteudo.html'; }, 1000);
     } catch (erro) {
       console.error(erro);
-      localStorage.setItem('acesso_ok', JSON.stringify({ tipo: 'auth', email: usuario.email, timestamp: Date.now() }));
-      mostrarMensagem(msg, '✅ Acesso liberado! Redirecionando...', 'sucesso');
-      setTimeout(() => {
-        window.location.href = 'conteudo.html';
-      }, 1200);
+      await auth.signOut();
+      mostrarMensagem('Erro ao verificar acesso: ' + erro.message, 'erro');
     }
   });
 }
 
+// LOGIN COM GOOGLE
 async function loginGoogle() {
-  const msg = document.getElementById('mensagem');
-  if (!auth) {
-    const emailManual = prompt("Digite seu e-mail do Google (Gmail):", "kauanma.1979@gmail.com");
-    if (emailManual) {
-      localStorage.setItem('acesso_ok', JSON.stringify({ tipo: 'google', email: emailManual, timestamp: Date.now() }));
-      mostrarMensagem(msg, '✅ Acesso liberado com conta Google!', 'sucesso');
-      setTimeout(() => { window.location.href = 'conteudo.html'; }, 1000);
-    }
-    return;
-  }
-
+  if (!auth) return mostrarMensagem('Firebase não inicializado!', 'erro');
   try {
     const cred = await auth.signInWithPopup(provedorGoogle);
-    const usuario = cred.user;
     if (db) {
-      try {
-        const doc = await db.collection('usuarios').doc(usuario.uid).get();
-        if (doc.exists && doc.data().data_expiracao) {
-          const expira = doc.data().data_expiracao.toDate ? doc.data().data_expiracao.toDate() : new Date(doc.data().data_expiracao);
-          if (new Date() > expira) {
-            await auth.signOut();
-            return mostrarMensagem(msg, '⚠️ Acesso expirado!', 'erro');
-          }
+      const doc = await db.collection('usuarios').doc(cred.user.uid).get();
+      if (!doc.exists) {
+        await auth.signOut();
+        return mostrarMensagem('⚠️ E-mail não cadastrado.', 'erro');
+      }
+      const dados = doc.data();
+      if (dados && dados.data_expiracao) {
+        const expira = dados.data_expiracao.toDate ? dados.data_expiracao.toDate() : new Date(dados.data_expiracao);
+        if (new Date() > expira) {
+          await auth.signOut();
+          return mostrarMensagem('⚠️ Acesso expirado!', 'erro');
         }
-      } catch (err) {
-        console.warn("Firestore check note:", err);
       }
     }
-    localStorage.setItem('acesso_ok', JSON.stringify({ tipo: 'google', email: usuario.email, timestamp: Date.now() }));
-    mostrarMensagem(msg, '✅ Acesso liberado com Google!', 'sucesso');
+    localStorage.setItem('acesso_ok', JSON.stringify({ tipo: 'google', email: cred.user.email, timestamp: Date.now() }));
+    mostrarMensagem('✅ Acesso liberado!', 'sucesso');
     setTimeout(() => { window.location.href = 'conteudo.html'; }, 1000);
   } catch (e) {
     if (e.code !== 'auth/cancelled-popup-request') {
-      const emailSim = prompt("Informe seu e-mail do Google para continuar:", "kauanma.1979@gmail.com");
-      if (emailSim) {
-        localStorage.setItem('acesso_ok', JSON.stringify({ tipo: 'google', email: emailSim, timestamp: Date.now() }));
-        mostrarMensagem(msg, '✅ Acesso liberado!', 'sucesso');
-        setTimeout(() => { window.location.href = 'conteudo.html'; }, 1000);
-      } else {
-        mostrarMensagem(msg, 'Erro ao entrar com Google: ' + (e.message || 'Tente novamente'), 'erro');
-      }
+      mostrarMensagem('Erro no login Google: ' + e.message, 'erro');
     }
   }
 }
 
+// FUNÇÃO DE LOGIN (BOTÃO "Acessar com E-mail")
 async function fazerLogin() {
   const email = document.getElementById('emailCliente').value.trim();
   const senha = document.getElementById('senhaCliente').value;
-  const btn = document.getElementById('btnEntrar');
-  const msg = document.getElementById('mensagem');
 
-  if (!email || !senha) return mostrarMensagem(msg, 'Preencha e-mail e senha!', 'erro');
-  btn.disabled = true; btn.textContent = 'Conectando...';
+  if (!email || !senha) return alert('Preencha e-mail e senha!');
 
   try {
-    if (auth) {
-      try {
-        await auth.signInWithEmailAndPassword(email, senha);
-        localStorage.setItem('acesso_ok', JSON.stringify({ tipo: 'email', email: email, timestamp: Date.now() }));
-        mostrarMensagem(msg, '✅ Acesso liberado!', 'sucesso');
-        setTimeout(() => { window.location.href = 'conteudo.html'; }, 1000);
-      } catch (e) {
-        const clientesLocais = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
-        const achouLocal = clientesLocais.find(c => c.email && c.email.toLowerCase() === email.toLowerCase());
-        if (achouLocal && (achouLocal.senha === senha || senha === '123456' || senha === '12726658')) {
-          localStorage.setItem('acesso_ok', JSON.stringify({ tipo: 'email', email: email, timestamp: Date.now() }));
-          mostrarMensagem(msg, '✅ Acesso liberado!', 'sucesso');
-          setTimeout(() => { window.location.href = 'conteudo.html'; }, 1000);
-        } else if (senha === '12726658' || email === 'kauanma.1979@gmail.com') {
-          localStorage.setItem('acesso_ok', JSON.stringify({ tipo: 'email', email: email, timestamp: Date.now() }));
-          mostrarMensagem(msg, '✅ Acesso liberado!', 'sucesso');
-          setTimeout(() => { window.location.href = 'conteudo.html'; }, 1000);
-        } else {
-          mostrarMensagem(msg, 'Erro: ' + e.message, 'erro');
-        }
-      }
-    } else {
-      localStorage.setItem('acesso_ok', JSON.stringify({ tipo: 'email', email: email, timestamp: Date.now() }));
-      mostrarMensagem(msg, '✅ Acesso liberado!', 'sucesso');
-      setTimeout(() => { window.location.href = 'conteudo.html'; }, 1000);
-    }
+    // A validação é feita DIRETO na Autenticação do Firebase
+    await auth.signInWithEmailAndPassword(email, senha);
   } catch (e) {
-    mostrarMensagem(msg, 'Erro: ' + e.message, 'erro');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Acessar com E-mail';
+    let msg = 'Erro no acesso!';
+    if (e.code === 'auth/user-not-found') msg = 'Usuário não cadastrado!';
+    if (e.code === 'auth/wrong-password') msg = 'Senha incorreta!';
+    alert(msg);
   }
 }
 </script>
