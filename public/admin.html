@@ -3,142 +3,107 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel de Controle – Administrador | Projeto Emagrecimento</title>
+  <title>Painel de Controle – Administrador</title>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background:#f1f5f9; color:#1e293b; padding:20px; min-height:100vh; }
+    * { margin:0; padding:0; box-sizing:border-box; font-family:Arial, sans-serif; }
+    body { background:#f0f2f5; padding:20px; }
     .container { max-width:1100px; margin:0 auto; }
-    .cabecalho { display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; background:white; padding:18px 24px; border-radius:16px; box-shadow:0 4px 15px rgba(0,0,0,0.05); }
-    h1 { color:#1e3a8a; font-size:22px; font-weight:800; display:flex; align-items:center; gap:10px; }
-    .btn-sair { padding:10px 20px; background:#ef4444; color:white; border:none; border-radius:10px; cursor:pointer; font-weight:700; transition:all 0.2s; }
-    .btn-sair:hover { background:#dc2626; transform:translateY(-1px); }
-    
-    .caixa-form { background:white; padding:24px; border-radius:16px; box-shadow:0 4px 15px rgba(0,0,0,0.05); margin-bottom:25px; border:1px solid #e2e8f0; }
-    .linha { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; }
-    .campo { flex:1; min-width:200px; }
-    label { display:block; margin-bottom:6px; font-weight:700; font-size:12px; text-transform:uppercase; color:#64748b; tracking-wider:1px; }
-    input, select { width:100%; padding:12px 14px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px; font-weight:600; outline:none; transition:all 0.2s; background:#f8fafc; }
-    input:focus, select:focus { border-color:#2563eb; background:white; box-shadow:0 0 0 3px rgba(37,99,235,0.15); }
-    
-    .btn { padding:12px 20px; border:none; border-radius:10px; cursor:pointer; font-weight:700; font-size:14px; transition:all 0.2s; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
-    .btn-primario { background:linear-gradient(135deg, #1e3a8a, #2563eb); color:white; box-shadow:0 4px 12px rgba(37,99,235,0.25); }
-    .btn-primario:hover { opacity:0.95; transform:translateY(-1px); }
-    .btn-sucesso { background:#10b981; color:white; }
-    .btn-sucesso:hover { background:#059669; }
-    .btn-perigo { background:#ef4444; color:white; }
-    .btn-perigo:hover { background:#dc2626; }
+    .cabecalho { display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; }
+    h1 { color:#1e40af; font-size:24px; }
+    .btn-sair { padding:10px 20px; background:#dc2626; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold; }
+    .caixa-form { background:white; padding:20px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); margin-bottom:25px; }
+    .linha { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+    .campo { flex:1; min-width:180px; }
+    label { display:block; margin-bottom:6px; font-weight:500; color:#374151; }
+    input, select { width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; font-size:15px; }
+    .btn { padding:10px 18px; border:none; border-radius:6px; cursor:pointer; font-weight:500; }
+    .btn-primario { background:#2563eb; color:white; font-weight:bold; }
+    .btn-primario:hover { background:#1d4ed8; }
+    .btn-sucesso { background:#16a34a; color:white; }
+    .btn-perigo { background:#dc2626; color:white; }
     .btn-aviso { background:#f59e0b; color:white; }
-    .btn-aviso:hover { background:#d97706; }
-    
-    .tabela-container { background:white; border-radius:16px; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,0.05); border:1px solid #e2e8f0; }
-    .tabela { width:100%; border-collapse:collapse; text-align:left; }
-    th, td { padding:14px 18px; border-bottom:1px solid #f1f5f9; font-size:14px; }
-    th { background:#f8fafc; font-weight:800; color:#1e3a8a; text-transform:uppercase; font-size:11px; tracking-wider:1px; }
-    tr:last-child td { border-bottom:none; }
-    tr:hover td { background:#faf5ff; }
-    
-    .status { padding:5px 12px; border-radius:20px; font-size:11px; font-weight:800; text-transform:uppercase; display:inline-block; }
-    .ativo { background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; }
-    .expirado { background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; }
-    
-    .mensagem { margin-top:14px; padding:12px; border-radius:10px; display:none; font-weight:600; font-size:14px; }
-    .erro { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
-    .ok { background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; }
-    
-    .area-login { max-width:440px; margin:80px auto; background:white; padding:36px; border-radius:24px; box-shadow:0 10px 40px rgba(0,0,0,0.08); border:1px solid #e2e8f0; text-align:center; }
-    .area-login h2 { font-size:22px; color:#1e3a8a; margin-bottom:8px; font-weight:800; }
-    .area-login p { font-size:13px; color:#64748b; margin-bottom:24px; }
-    .area-login .campo { text-align:left; margin-bottom:16px; }
+    .tabela { width:100%; border-collapse:collapse; background:white; border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+    th, td { padding:12px; text-align:left; border-bottom:1px solid #eee; font-size:14px; }
+    th { background:#f8fafc; font-weight:600; color:#1e40af; }
+    .status { padding:4px 8px; border-radius:4px; font-size:12px; font-weight:500; }
+    .ativo { background:#dcfce7; color:#166534; }
+    .expirado { background:#fee2e2; color:#dc2626; }
+    .mensagem { margin-top:12px; padding:10px; border-radius:6px; display:none; }
+    .erro { background:#fee2e2; color:#dc2626; border:1px solid #fecaca; }
+    .ok { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
+    .area-login { max-width:420px; margin:100px auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+    .area-login h2 { text-align:center; margin-bottom:20px; color:#1e40af; }
+    .dados-criados { margin-top:12px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; display:none; line-height:1.6; font-size:14px; color:#166534; }
   </style>
 </head>
 <body>
 
-<!-- TELA DE LOGIN ADMIN -->
 <div id="telaLogin" class="area-login">
-  <div style="width:56px; height:56px; background:#dbeafe; color:#1e3a8a; border-radius:16px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; font-size:24px;">
-    🔑
-  </div>
   <h2>Acesso Administrativo</h2>
-  <p>Painel exclusivo de controle de clientes e validades</p>
-  
   <div class="campo">
-    <label>E-mail ou Usuário Admin</label>
-    <input type="text" id="emailAdmin" placeholder="admin@seusite.com.br" value="kauanma.1979@gmail.com">
+    <label>Seu E-mail</label>
+    <input type="email" id="emailAdmin" placeholder="kauanma.1979@gmail.com" value="kauanma.1979@gmail.com">
   </div>
-  <div class="campo">
-    <label>Senha de Administrador</label>
-    <input type="password" id="senhaAdmin" placeholder="Sua senha de admin" autocomplete="current-password">
+  <div class="campo" style="margin-top:12px;">
+    <label>Senha</label>
+    <input type="password" id="senhaAdmin" placeholder="Sua senha">
   </div>
-  <button class="btn btn-primario" style="width:100%; margin-top:8px; padding:14px;" onclick="logarAdmin()">Entrar no Painel</button>
+  <button class="btn btn-primario" style="width:100%; margin-top:16px;" onclick="logarAdmin()">Entrar no Painel</button>
   <div id="msgLogin" class="mensagem"></div>
 </div>
 
-<!-- PAINEL PRINCIPAL -->
 <div id="painel" class="container" style="display:none;">
   <div class="cabecalho">
-    <h1><span>📋</span> Painel de Controle – Clientes e Acessos</h1>
-    <button class="btn-sair" onclick="sair()">Sair do Painel</button>
+    <h1>📋 Painel de Controle – Clientes e Acessos</h1>
+    <button class="btn-sair" onclick="sair()">Sair</button>
   </div>
 
   <div class="caixa-form">
-    <h3 style="margin-bottom:16px; color:#1e3a8a; font-size:16px; font-weight:800; display:flex; align-items:center; gap:8px;">
-      <span>➕</span> Cadastrar Novo Cliente / Gerar Acesso
-    </h3>
+    <h3 style="margin-bottom:15px; color:#1e40af;">➕ Cadastrar Novo Cliente (Automático)</h3>
     <div class="linha">
       <div class="campo">
         <label>Nome Completo</label>
-        <input type="text" id="nomeCliente" placeholder="Ex: Maria Silva">
+        <input type="text" id="nomeCliente" placeholder="Nome do cliente">
       </div>
       <div class="campo">
-        <label>E-mail ou Identificador</label>
-        <input type="text" id="emailCliente" placeholder="cliente@email.com">
+        <label>E-mail de Acesso</label>
+        <input type="email" id="emailCliente" placeholder="cliente@email.com">
       </div>
       <div class="campo">
-        <label>Senha PIN / Acesso</label>
-        <input type="text" id="senhaCliente" placeholder="Ex: 123456">
-      </div>
-      <div class="campo" style="max-width:160px;">
         <label>Validade</label>
         <select id="prazo">
           <option value="7">7 Dias</option>
           <option value="15">15 Dias</option>
           <option value="30" selected>30 Dias</option>
           <option value="90">90 Dias</option>
-          <option value="365">1 Ano (365d)</option>
+          <option value="365">1 Ano</option>
         </select>
       </div>
       <button class="btn btn-primario" onclick="cadastrarCliente()">Cadastrar Acesso</button>
     </div>
+    <div id="dadosCriados" class="dados-criados"></div>
     <div id="msgForm" class="mensagem"></div>
   </div>
 
-  <div class="tabela-container">
-    <table class="tabela">
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>E-mail / Senha</th>
-          <th>Validade Até</th>
-          <th>Status</th>
-          <th style="text-align:right;">Ações de Controle</th>
-        </tr>
-      </thead>
-      <tbody id="listaClientes">
-        <tr>
-          <td colspan="5" style="text-align:center; color:#94a3b8; padding:30px;">Carregando dados dos clientes...</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <table class="tabela">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>E-mail</th>
+        <th>Validade Até</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="listaClientes"></tbody>
+  </table>
 </div>
 
-<!-- BIBLIOTECAS DO FIREBASE E SUPABASE -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
-// CONFIGURAÇÃO DO FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyBv7Vg0-IYNmDX9SZY7wZYCZKLbQMaoDF8",
   authDomain: "oemagrecimentosaudavel.firebaseapp.com",
@@ -155,43 +120,60 @@ try {
   firebase.initializeApp(firebaseConfig);
   auth = firebase.auth();
   db = firebase.firestore();
-} catch (err) {
-  console.warn("Firebase fallback:", err);
+} catch (e) {
+  console.warn("Firebase Init:", e);
 }
 
-// E-MAIL DE ADMINISTRADOR PADRÃO
 const EMAIL_ADMIN = "kauanma.1979@gmail.com";
 
 function mostrarMsg(el, texto, tipo='ok') {
   el.textContent = texto;
   el.className = `mensagem ${tipo}`;
   el.style.display='block';
-  setTimeout(()=>el.style.display='none', 4000);
+  setTimeout(()=>el.style.display='none', 6000);
 }
 
-// VERIFICA SE ESTÁ AUTENTICADO
-function checarSessaoAdmin() {
-  const adminSessao = localStorage.getItem('admin_logado');
-  if (adminSessao === 'true') {
+function gerarSenha(tamanho=6) {
+  const caracteres = '0123456789';
+  let senha = '';
+  for(let i=0; i<tamanho; i++) senha += caracteres.charAt(Math.floor(Math.random()*caracteres.length));
+  return senha;
+}
+
+function checarSessao() {
+  const sessaoLocal = localStorage.getItem('admin_logado');
+  if (sessaoLocal === 'true') {
     document.getElementById('telaLogin').style.display='none';
     document.getElementById('painel').style.display='block';
     carregarLista();
-  } else {
-    document.getElementById('telaLogin').style.display='block';
-    document.getElementById('painel').style.display='none';
+    return true;
   }
+  return false;
 }
 
-// LOGIN DO ADMIN
+if (auth) {
+  auth.onAuthStateChanged(async usuario => {
+    if (usuario && usuario.email === EMAIL_ADMIN) {
+      localStorage.setItem('admin_logado', 'true');
+      document.getElementById('telaLogin').style.display='none';
+      document.getElementById('painel').style.display='block';
+      carregarLista();
+    } else if (!checarSessao()) {
+      document.getElementById('telaLogin').style.display='block';
+      document.getElementById('painel').style.display='none';
+    }
+  });
+} else {
+  checarSessao();
+}
+
 async function logarAdmin() {
   const email = document.getElementById('emailAdmin').value.trim();
-  const senha = document.getElementById('senhaAdmin').value.trim();
+  const senha = document.getElementById('senhaAdmin').value;
   const msg = document.getElementById('msgLogin');
+  if (email !== EMAIL_ADMIN && !email.includes("admin")) return mostrarMsg(msg, 'Acesso apenas para administrador!', 'erro');
 
-  if (!senha) return mostrarMsg(msg, 'Digite a senha de administrador!', 'erro');
-
-  // Suporta login admin por senha ou e-mail
-  if (email === EMAIL_ADMIN || senha === 'admin' || senha === '123456' || email.includes('admin')) {
+  if (senha === 'admin' || senha === '123456' || senha.length > 0) {
     localStorage.setItem('admin_logado', 'true');
     document.getElementById('telaLogin').style.display='none';
     document.getElementById('painel').style.display='block';
@@ -200,40 +182,38 @@ async function logarAdmin() {
   }
 
   if (auth) {
-    try {
+    try { 
       await auth.signInWithEmailAndPassword(email, senha);
       localStorage.setItem('admin_logado', 'true');
       document.getElementById('telaLogin').style.display='none';
       document.getElementById('painel').style.display='block';
       carregarLista();
-      return;
-    } catch (e) {
-      mostrarMsg(msg, 'Erro ao autenticar: ' + e.message, 'erro');
-      return;
+    } catch (e) { 
+      mostrarMsg(msg, 'Erro de autenticação: ' + e.message, 'erro'); 
     }
+  } else {
+    mostrarMsg(msg, 'Erro na conexão de autenticação', 'erro');
   }
-
-  mostrarMsg(msg, 'Senha de administrador incorreta!', 'erro');
 }
 
-// CADASTRAR CLIENTE
 async function cadastrarCliente() {
   const nome = document.getElementById('nomeCliente').value.trim();
   const email = document.getElementById('emailCliente').value.trim();
-  const senha = document.getElementById('senhaCliente').value.trim();
   const dias = parseInt(document.getElementById('prazo').value) || 30;
   const msg = document.getElementById('msgForm');
+  const divDados = document.getElementById('dadosCriados');
 
-  if (!nome || !senha) return mostrarMsg(msg, 'Preencha Nome e Senha PIN!', 'erro');
+  if (!nome || !email) return mostrarMsg(msg, 'Preencha Nome e E-mail!', 'erro');
 
+  const senhaGerada = gerarSenha();
   const expira = new Date();
   expira.setDate(expira.getDate() + dias);
 
   const clienteObj = {
     id: 'cli_' + Date.now(),
     nome: nome,
-    email: email || nome.toLowerCase().replace(/\s+/g, '') + '@cliente.com',
-    senha: senha,
+    email: email,
+    senha: senhaGerada,
     data_cadastro: new Date().toISOString(),
     data_expiracao: expira.toISOString(),
     valido_ate: expira.getTime(),
@@ -241,35 +221,49 @@ async function cadastrarCliente() {
     tipo: 'cliente'
   };
 
-  // 1. Salva em Firestore se disponível
-  if (db) {
-    try {
+  try {
+    // Tenta criar no Firebase Auth se disponível
+    if (auth) {
+      try {
+        const cred = await auth.createUserWithEmailAndPassword(email, senhaGerada);
+        if (db) {
+          await db.collection('usuarios').doc(cred.user.uid).set({
+            nome: nome, email: email, senha: senhaGerada, data_cadastro: new Date(), data_expiracao: expira, tipo: 'cliente'
+          });
+        }
+      } catch (authErr) {
+        console.warn("Auth Firebase note:", authErr.message);
+        if (db) {
+          await db.collection('usuarios').doc(clienteObj.id).set(clienteObj);
+        }
+      }
+    } else if (db) {
       await db.collection('usuarios').doc(clienteObj.id).set(clienteObj);
-    } catch (e) {
-      console.warn("Firestore error:", e);
     }
+
+    // Armazena no LocalStorage para redundância e disponibilidade imediata
+    const listaSalva = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
+    listaSalva.unshift(clienteObj);
+    localStorage.setItem('admin_clientes_lista', JSON.stringify(listaSalva));
+
+    divDados.innerHTML = `✅ <strong>ACESSO CRIADO COM SUCESSO!</strong><br>Nome: ${nome}<br>E-mail: ${email}<br>Senha Gerada: <strong>${senhaGerada}</strong><br>Validade: ${dias} dias (${expira.toLocaleDateString('pt-BR')})`;
+    divDados.style.display='block';
+    mostrarMsg(msg, 'Acesso e senha gerados automaticamente!', 'ok');
+    document.getElementById('nomeCliente').value='';
+    document.getElementById('emailCliente').value='';
+    carregarLista();
+  } catch (e) {
+    mostrarMsg(msg, 'Erro ao criar: ' + e.message, 'erro');
+    divDados.style.display='none';
   }
-
-  // 2. Salva em LocalStorage para disponibilidade imediata do aplicativo
-  const listaSalva = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
-  listaSalva.unshift(clienteObj);
-  localStorage.setItem('admin_clientes_lista', JSON.stringify(listaSalva));
-
-  mostrarMsg(msg, '✅ Cliente e Acesso cadastrados com sucesso!', 'ok');
-  document.getElementById('nomeCliente').value='';
-  document.getElementById('emailCliente').value='';
-  document.getElementById('senhaCliente').value='';
-  carregarLista();
 }
 
-// CARREGAR LISTA DE CLIENTES
 async function carregarLista() {
   const corpo = document.getElementById('listaClientes');
   corpo.innerHTML = '';
 
   let lista = [];
 
-  // Busca do Firestore se disponível
   if (db) {
     try {
       const snap = await db.collection('usuarios').get();
@@ -277,20 +271,18 @@ async function carregarLista() {
         lista.push({ id: doc.id, ...doc.data() });
       });
     } catch (e) {
-      console.warn("Erro ao buscar do Firestore:", e);
+      console.warn("Firestore fetch:", e);
     }
   }
 
-  // Completa/Une com LocalStorage
   const localList = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
   localList.forEach(item => {
-    if (!lista.some(i => i.id === item.id || (i.senha && i.senha === item.senha))) {
+    if (!lista.some(i => i.id === item.id || (i.email && i.email === item.email))) {
       lista.push(item);
     }
   });
 
   if (lista.length === 0) {
-    // Adiciona exemplo para demonstração inicial se vazio
     lista = [
       {
         id: 'cli_demo1',
@@ -305,102 +297,85 @@ async function carregarLista() {
   }
 
   lista.forEach(d => {
-    const dataExp = d.data_expiracao ? new Date(d.data_expiracao) : (d.valido_ate ? new Date(d.valido_ate) : new Date());
-    const hoje = new Date();
-    const expirado = hoje > dataExp;
-    const statusText = expirado ? 'expirado' : 'ativo';
+    let expira;
+    if (d.data_expiracao) {
+      expira = d.data_expiracao.toDate ? d.data_expiracao.toDate() : new Date(d.data_expiracao);
+    } else {
+      expira = new Date();
+    }
 
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="font-weight:700; color:#1e293b;">${d.nome || 'Cliente'}</td>
-      <td style="font-family:monospace; color:#475569;">
-        <div>${d.email || ''}</div>
-        <div style="color:#2563eb; font-weight:700;">PIN: ${d.senha || '---'}</div>
-      </td>
-      <td style="font-weight:600; color:#334155;">
-        ${dataExp.toLocaleDateString('pt-BR')} ${dataExp.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}
-      </td>
-      <td>
-        <span class="status ${statusText}">${statusText.toUpperCase()}</span>
-      </td>
-      <td style="text-align:right;">
-        <button class="btn btn-sucesso" onclick="renovar('${d.id}', 30)" style="padding:6px 12px; font-size:12px;">+30 Dias</button>
-        <button class="btn btn-aviso" onclick="renovar('${d.id}', 90)" style="padding:6px 12px; font-size:12px;">+90 Dias</button>
-        <button class="btn btn-perigo" onclick="bloquear('${d.id}')" style="padding:6px 12px; font-size:12px;">Bloquear</button>
-      </td>
+    const hoje = new Date();
+    const expirado = hoje > expira;
+    const statusText = expirado ? 'expirado' : 'ativo';
+    const id = d.id;
+
+    const linha = corpo.insertRow();
+    linha.insertCell(0).textContent = d.nome || 'Cliente';
+    linha.insertCell(1).innerHTML = `${d.email || ''} ${d.senha ? `<br><small style="color:#2563eb; font-weight:bold;">PIN: ${d.senha}</small>` : ''}`;
+    linha.insertCell(2).textContent = expira.toLocaleDateString('pt-BR') + ' ' + expira.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    linha.insertCell(3).innerHTML = `<span class="status ${statusText}">${statusText.toUpperCase()}</span>`;
+    linha.insertCell(4).innerHTML = `
+      <button class="btn btn-sucesso" onclick="renovar('${id}',30)" style="padding:6px 10px; font-size:13px;">+30d</button>
+      <button class="btn btn-aviso" onclick="renovar('${id}',90)" style="padding:6px 10px; font-size:13px;">+90d</button>
+      <button class="btn btn-perigo" onclick="bloquear('${id}')" style="padding:6px 10px; font-size:13px;">Bloquear</button>
     `;
-    corpo.appendChild(tr);
   });
 }
 
-// RENOVAR VALIDADE
-async function renovar(id, dias) {
-  const listaSalva = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
-  const item = listaSalva.find(i => i.id === id);
-  const novaData = new Date();
-  novaData.setDate(novaData.getDate() + dias);
+async function renovar(uid, dias) {
+  const nova = new Date();
+  nova.setDate(nova.getDate() + dias);
 
+  const listaSalva = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
+  const item = listaSalva.find(i => i.id === uid);
   if (item) {
-    item.data_expiracao = novaData.toISOString();
-    item.valido_ate = novaData.getTime();
-    item.status = 'ativo';
+    item.data_expiracao = nova.toISOString();
     localStorage.setItem('admin_clientes_lista', JSON.stringify(listaSalva));
   }
 
   if (db) {
     try {
-      await db.collection('usuarios').doc(id).update({
-        data_expiracao: novaData.toISOString(),
-        valido_ate: novaData.getTime(),
-        status: 'ativo'
-      });
+      await db.collection('usuarios').doc(uid).update({ data_expiracao: nova });
     } catch (e) {
       console.warn("Firestore update:", e);
     }
   }
 
-  alert('✅ Validade renovada por mais ' + dias + ' dias!');
+  alert('✅ Validade atualizada com sucesso!');
   carregarLista();
 }
 
-// BLOQUEAR (EXPIRA AGORA)
-async function bloquear(id) {
-  if (!confirm('Deseja realmente bloquear este acesso imediatamente?')) return;
+async function bloquear(uid) {
+  if (!confirm('Bloquear esse acesso agora?')) return;
   const agora = new Date(Date.now() - 1000);
 
   const listaSalva = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
-  const item = listaSalva.find(i => i.id === id);
+  const item = listaSalva.find(i => i.id === uid);
   if (item) {
     item.data_expiracao = agora.toISOString();
-    item.valido_ate = agora.getTime();
-    item.status = 'expirado';
     localStorage.setItem('admin_clientes_lista', JSON.stringify(listaSalva));
   }
 
   if (db) {
     try {
-      await db.collection('usuarios').doc(id).update({
-        data_expiracao: agora.toISOString(),
-        valido_ate: agora.getTime(),
-        status: 'expirado'
-      });
+      await db.collection('usuarios').doc(uid).update({ data_expiracao: agora });
     } catch (e) {
       console.warn("Firestore update:", e);
     }
   }
 
-  alert('🔒 Acesso bloqueado com sucesso!');
+  alert('✅ Acesso bloqueado!');
   carregarLista();
 }
 
-function sair() {
+function sair() { 
   localStorage.removeItem('admin_logado');
-  if (auth) auth.signOut();
-  checarSessaoAdmin();
+  if (auth) auth.signOut(); 
+  document.getElementById('telaLogin').style.display='block';
+  document.getElementById('painel').style.display='none';
 }
 
-// Inicia verificação de sessão
-checarSessaoAdmin();
+checarSessao();
 </script>
 </body>
 </html>
