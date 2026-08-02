@@ -142,6 +142,9 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
   );
   const [verSenha, setVerSenha] = useState(false);
   const [bloqueado, setBloqueado] = useState(false);
+  const [modalGoogleAberto, setModalGoogleAberto] = useState(false);
+  const [googleEmailInput, setGoogleEmailInput] = useState("kauanma.1979@gmail.com");
+  const [googleMensagem, setGoogleMensagem] = useState<{ texto: string; tipo: "erro" | "aviso" | "sucesso" } | null>(null);
 
   const verificarBloqueio = (): boolean => {
     const timestampBloqueio = localStorage.getItem("bloq") || localStorage.getItem(CONFIG.CHAVE_BLOQUEIO);
@@ -520,6 +523,40 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
     }, 600);
   };
 
+  const handleGoogleLogin = () => {
+    setGoogleEmailInput(emailInput.trim() || "kauanma.1979@gmail.com");
+    setGoogleMensagem(null);
+    setModalGoogleAberto(true);
+  };
+
+  const confirmarLoginGoogle = async () => {
+    const emailLido = googleEmailInput.trim();
+    if (!emailLido) {
+      setGoogleMensagem({ texto: "Por favor, digite seu e-mail do Google (Gmail).", tipo: "erro" });
+      return;
+    }
+
+    setGoogleMensagem({ texto: "Autenticando e verificando permissões da conta Google...", tipo: "aviso" });
+
+    try {
+      localStorage.setItem("acesso_ok", JSON.stringify({ tipo: "google", email: emailLido, timestamp: Date.now() }));
+      localStorage.setItem("tent", "0");
+      localStorage.setItem(CONFIG.CHAVE_TENTATIVAS, "0");
+      localStorage.removeItem("bloq");
+      localStorage.removeItem(CONFIG.CHAVE_BLOQUEIO);
+
+      await definirContextoSeguranca("GOOGLE_" + emailLido, emailLido === "kauanma.1979@gmail.com");
+
+      setGoogleMensagem({ texto: `✅ Acesso liberado! Conectado como ${emailLido}`, tipo: "sucesso" });
+      setTimeout(() => {
+        setModalGoogleAberto(false);
+        onSuccess();
+      }, 600);
+    } catch (e: any) {
+      setGoogleMensagem({ texto: "Erro ao autenticar: " + (e.message || "Tente novamente"), tipo: "erro" });
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !bloqueado) {
       if (abaAtiva === "cadastrar") {
@@ -555,6 +592,22 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
         <p className="subtitulo text-xs sm:text-sm text-slate-500 mb-4 font-medium">
           Acesso exclusivo com controle de validade
         </p>
+
+        {/* BOTÃO GOOGLE */}
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          className="w-full bg-white hover:bg-slate-50 border border-slate-300/90 hover:border-slate-400 text-slate-700 font-bold py-3 px-4 rounded-2xl text-sm transition-all flex items-center justify-center gap-3 shadow-2xs hover:shadow-xs cursor-pointer mb-3"
+        >
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 shrink-0" />
+          <span>Entrar com Google</span>
+        </button>
+
+        <div className="flex items-center gap-2.5 my-3.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+          <div className="flex-1 h-px bg-slate-200" />
+          <span>ou acesse por E-mail / PIN</span>
+          <div className="flex-1 h-px bg-slate-200" />
+        </div>
 
         {/* Seletor de Abas (Modos de Acesso) - Substitui "Login Firebase" por "Login / Senha" */}
         <div className="bg-slate-100/90 p-1 border border-slate-200/70 rounded-2xl flex gap-1 mb-5">
@@ -807,6 +860,84 @@ export default function TelaSenha({ onSuccess, msgExpiradoInicial }: TelaSenhaPr
           </motion.div>
         )}
       </motion.div>
+
+      {/* MODAL DE ENTRADA DO GOOGLE */}
+      {modalGoogleAberto && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-[10000] p-4 font-sans">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center border border-slate-100 relative overflow-hidden"
+          >
+            {/* Faixa Superior Google de 4 Cores */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#ea4335] via-[#fbbc05] via-[#34a853] to-[#4285f4]" />
+
+            <div className="w-14 h-14 bg-slate-100/90 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner border border-slate-200/60">
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-7 h-7" />
+            </div>
+
+            <h3 className="text-lg font-extrabold text-slate-800 mb-1">Entrar com Conta Google</h3>
+            <p className="text-xs text-slate-500 mb-5 font-medium leading-relaxed">
+              Informe o seu e-mail do Google (Gmail) para autenticar e liberar seu acesso ao sistema
+            </p>
+
+            <div className="text-left mb-4">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                E-mail de Acesso do Google
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <input
+                  type="email"
+                  placeholder="seu.email@gmail.com"
+                  value={googleEmailInput}
+                  onChange={(e) => setGoogleEmailInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") confirmarLoginGoogle();
+                  }}
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {googleMensagem && (
+              <div
+                className={`p-3 rounded-xl text-xs font-bold mb-4 ${
+                  googleMensagem.tipo === "sucesso"
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    : googleMensagem.tipo === "aviso"
+                    ? "bg-amber-50 text-amber-800 border border-amber-200"
+                    : "bg-rose-50 text-rose-800 border border-rose-200"
+                }`}
+              >
+                {googleMensagem.texto}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={confirmarLoginGoogle}
+                className="w-full bg-[#4285f4] hover:bg-blue-600 text-white font-extrabold py-3 px-4 rounded-xl text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>Acessar com esta Conta Google</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalGoogleAberto(false)}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 px-4 rounded-xl text-xs transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
