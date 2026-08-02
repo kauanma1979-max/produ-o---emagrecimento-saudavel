@@ -3,109 +3,99 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Conteúdo Exclusivo - Projeto Emagrecimento Saudável</title>
-  
-  <!-- BIBLIOTECAS DO FIREBASE -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
-  <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBv7Vg0-IYNmDX9SZY7wZYCZKLbQMaoDF8",
-    authDomain: "oemagrecimentosaudavel.firebaseapp.com",
-    projectId: "oemagrecimentosaudavel",
-    storageBucket: "oemagrecimentosaudavel.firebasestorage.app",
-    messagingSenderId: "902556499129",
-    appId: "1:902556499129:web:736e2616dad2266f576f68"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-
-  auth.onAuthStateChanged(async usuario => {
-    if (!usuario) {
-      // Checa se há login ativo no localStorage do app
-      const acessoOk = localStorage.getItem('acesso_ok') || localStorage.getItem('acesso_ok_v1');
-      if (!acessoOk) {
-        return window.location.href = '/';
-      }
-      document.getElementById('carregando').style.display = 'none';
-      document.getElementById('conteudo-principal').style.display = 'block';
-      return;
-    }
-
-    try {
-      const dados = await db.collection('usuarios').doc(usuario.uid).get();
-      if (dados.exists && dados.data().data_expiracao) {
-        const expira = dados.data().data_expiracao.toDate();
-        if (new Date() > expira) {
-          await auth.signOut();
-          alert('⚠️ Acesso expirado!');
-          return window.location.href = '/';
-        }
-      }
-    } catch (e) {
-      console.warn("Erro ao verificar validade:", e);
-    }
-
-    document.getElementById('carregando').style.display = 'none';
-    document.getElementById('conteudo-principal').style.display = 'block';
-  });
-  </script>
-
+  <title>Área do Cliente</title>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background:#f8fafc; color:#1e293b; min-height:100vh; }
-    .carregando-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; background:#1e3a8a; color:white; font-weight:700; }
-    .spinner { width:48px; height:48px; border:5px solid rgba(255,255,255,0.2); border-top-color:white; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:16px; }
-    @keyframes spin { to { transform:rotate(360deg); } }
-    .container { max-width:1200px; margin:0 auto; padding:20px; }
-    .topbar { background:white; padding:16px 24px; border-radius:16px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 4px 15px rgba(0,0,0,0.04); margin-bottom:24px; border:1px solid #e2e8f0; }
-    .topbar h1 { font-size:20px; color:#1e3a8a; font-weight:800; display:flex; align-items:center; gap:10px; }
-    .btn-app { background:linear-gradient(135deg, #2E7D32, #15803d); color:white; text-decoration:none; padding:10px 18px; border-radius:10px; font-weight:700; font-size:14px; transition:all 0.2s; display:inline-flex; align-items:center; gap:6px; }
-    .btn-app:hover { opacity:0.95; transform:translateY(-1px); }
-    .card-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px; }
-    .card { background:white; padding:24px; border-radius:16px; border:1px solid #e2e8f0; box-shadow:0 4px 15px rgba(0,0,0,0.03); }
-    .card h3 { color:#1e3a8a; font-size:16px; font-weight:800; margin-bottom:10px; }
-    .card p { font-size:14px; color:#64748b; line-height:1.6; }
+    * { margin:0; padding:0; box-sizing:border-box; font-family:Arial, sans-serif; }
+    body { background:#f8fafc; padding:30px; max-width:900px; margin:0 auto; }
+    .cabecalho { display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; }
+    h1 { color:#1e40af; }
+    .btn-sair { padding:8px 16px; background:#dc2626; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold; }
+    .caixa { background:white; padding:25px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:20px; }
+    .dados-usuario { color:#475569; margin-bottom:15px; line-height:1.8; }
+    .btn-app { display:inline-block; margin-top:15px; background:#16a34a; color:white; padding:10px 20px; text-decoration:none; border-radius:8px; font-weight:bold; }
   </style>
 </head>
 <body>
+<div class="cabecalho">
+  <h1>👋 Área do Cliente – Emagrecimento Saudável</h1>
+  <button class="btn-sair" onclick="sair()">Sair</button>
+</div>
 
-  <!-- TELA DE CARREGAMENTO -->
-  <div id="carregando" class="carregando-screen">
-    <div class="spinner"></div>
-    <p>Verificando acesso do usuário...</p>
+<div class="caixa">
+  <div class="dados-usuario">
+    <strong>Nome:</strong> <span id="nomeUsuario">Cliente</span><br>
+    <strong>E-mail:</strong> <span id="emailUsuario">---</span><br>
+    <strong>Validade até:</strong> <span id="validadeUsuario">---</span>
   </div>
+  <hr style="margin:20px 0; border:none; border-top:1px solid #eee;">
+  <p style="margin-bottom:15px; font-size:15px; color:#334155;">
+    Seja bem-vindo(a) ao seu painel exclusivo! Aqui você tem acesso ao aplicativo completo de controle de saúde, nutrição e rastreamento de progresso.
+  </p>
+  <a href="/" class="btn-app">🚀 Abrir Aplicativo Completo</a>
+</div>
 
-  <!-- CONTEÚDO PRINCIPAL INTERNO -->
-  <div id="conteudo-principal" style="display:none;">
-    <div class="container">
-      <div class="topbar">
-        <h1><span>🌱</span> Projeto Emagrecimento Saudável – Conteúdo Interno</h1>
-        <a href="/" class="btn-app"><span>📲</span> Abrir Aplicativo Completo</a>
-      </div>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-      <div class="card-grid">
-        <div class="card">
-          <h3>✅ Acesso Verificado e Ativo</h3>
-          <p>Sua conta e permissão de uso foram validadas com sucesso no sistema. Você tem acesso ilimitado a todas as ferramentas do aplicativo.</p>
-        </div>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBv7Vg0-IYNmDX9SZY7wZYCZKLbQMaoDF8",
+  authDomain: "oemagrecimentosaudavel.firebaseapp.com",
+  projectId: "oemagrecimentosaudavel",
+  storageBucket: "oemagrecimentosaudavel.firebasestorage.app",
+  messagingSenderId: "902556499129",
+  appId: "1:902556499129:web:736e2616dad2266f576f68"
+};
 
-        <div class="card">
-          <h3>📊 Dashboard de Acompanhamento</h3>
-          <p>Acesse o aplicativo principal para registrar peso, medidas corporais, refeições e calcular seu IMC em tempo real.</p>
-        </div>
+let auth = null;
+let db = null;
 
-        <div class="card">
-          <h3>📑 Plano Nutricional & Medicamentos</h3>
-          <p>Acompanhe suas dosagens, injeções, histórico de registros e gere relatórios em PDF do seu progresso.</p>
-        </div>
-      </div>
-    </div>
-  </div>
+try {
+  firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+} catch (e) {
+  console.warn("Firebase note:", e);
+}
 
+if (auth) {
+  auth.onAuthStateChanged(async usuario => {
+    if (!usuario) {
+      const ok = localStorage.getItem('acesso_ok');
+      if (!ok) return window.location.href='login.html';
+      return;
+    }
+    try {
+      if (db) {
+        const doc = await db.collection('usuarios').doc(usuario.uid).get();
+        if (doc.exists) {
+          const dados = doc.data();
+          if (dados.data_expiracao) {
+            const expira = dados.data_expiracao.toDate ? dados.data_expiracao.toDate() : new Date(dados.data_expiracao);
+            if (new Date() > expira) return sair();
+            document.getElementById('nomeUsuario').textContent = dados.nome || 'Cliente';
+            document.getElementById('emailUsuario').textContent = dados.email || usuario.email;
+            document.getElementById('validadeUsuario').textContent = expira.toLocaleDateString('pt-BR');
+            return;
+          }
+        }
+      }
+      document.getElementById('emailUsuario').textContent = usuario.email;
+    } catch { 
+      document.getElementById('emailUsuario').textContent = usuario.email;
+    }
+  });
+} else {
+  const ok = localStorage.getItem('acesso_ok');
+  if (!ok) window.location.href='login.html';
+}
+
+function sair() { 
+  localStorage.removeItem('acesso_ok');
+  if (auth) auth.signOut(); 
+  window.location.href='login.html'; 
+}
+</script>
 </body>
 </html>

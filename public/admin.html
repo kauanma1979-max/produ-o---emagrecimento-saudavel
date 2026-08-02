@@ -45,7 +45,6 @@
 </head>
 <body>
 
-<!-- TELA DE LOGIN ADMIN -->
 <div id="telaLogin" class="area-login">
   <h2>Acesso Administrativo</h2>
   <div class="campo">
@@ -56,18 +55,16 @@
     <label>Senha</label>
     <input type="password" id="senhaAdmin" placeholder="Sua senha">
   </div>
-  <button class="btn btn-primario" style="width:100%; margin-top:16px;" onclick="logarAdmin()">Entrar no Painel</button>
+  <button class="btn btn-primario" style="width:100%; margin-top:16px;" onclick="logarAdmin()">Entrar</button>
   <div id="msgLogin" class="mensagem"></div>
 </div>
 
-<!-- PAINEL PRINCIPAL -->
 <div id="painel" class="container" style="display:none;">
   <div class="cabecalho">
     <h1>📋 Painel de Controle Completo</h1>
     <button class="btn btn-sair" onclick="sair()">Sair do Painel</button>
   </div>
 
-  <!-- FORMULÁRIO DE CADASTRO -->
   <div class="caixa-form">
     <h3 style="margin-bottom:15px; color:#1e40af;">➕ Cadastrar Novo Cliente</h3>
     <div class="linha">
@@ -96,13 +93,11 @@
     <div id="msgForm" class="mensagem"></div>
   </div>
 
-  <!-- BUSCA E AÇÕES GERAIS -->
   <div class="caixa-form barra-busca" style="padding:15px;">
     <input type="text" id="busca" placeholder="🔍 Buscar por nome ou e-mail..." oninput="filtrarLista()">
-    <button class="btn btn-aviso" style="margin-left:10px;" onclick="exportarLista()">📤 Exportar Lista CSV</button>
+    <button class="btn btn-aviso" style="margin-left:10px;" onclick="exportarLista()">📤 Exportar Lista</button>
   </div>
 
-  <!-- TABELA COMPLETA -->
   <table class="tabela">
     <thead>
       <tr>
@@ -110,14 +105,13 @@
         <th>E-mail</th>
         <th>Validade Até</th>
         <th>Status</th>
-        <th>Ações de Controle</th>
+        <th>Ações</th>
       </tr>
     </thead>
     <tbody id="listaClientes"></tbody>
   </table>
 </div>
 
-<!-- MODAL DE EDIÇÃO -->
 <div id="modalEditar" class="modal">
   <div class="modal-conteudo">
     <h3>✏️ Editar Cliente</h3>
@@ -131,7 +125,7 @@
       <input type="email" id="editEmail">
     </div>
     <div class="campo">
-      <label>Renovar / Adicionar Validade</label>
+      <label>Nova Validade</label>
       <select id="editPrazo">
         <option value="30" selected>+30 Dias</option>
         <option value="90">+90 Dias</option>
@@ -182,8 +176,7 @@ function mostrarMsg(el, texto, tipo='ok') {
 }
 
 function gerarSenha(tamanho=6) {
-  const c = '0123456789'; 
-  let s='';
+  const c = '0123456789'; let s='';
   for(let i=0;i<tamanho;i++) s += c[Math.floor(Math.random()*c.length)];
   return s;
 }
@@ -220,7 +213,7 @@ async function logarAdmin() {
   const senha = document.getElementById('senhaAdmin').value;
   const msg = document.getElementById('msgLogin');
   if (email !== EMAIL_ADMIN && !email.includes("admin")) return mostrarMsg(msg, 'Acesso apenas para administrador!', 'erro');
-  
+
   if (senha === 'admin' || senha === '123456' || senha.length > 0) {
     localStorage.setItem('admin_logado', 'true');
     document.getElementById('telaLogin').style.display='none';
@@ -236,9 +229,7 @@ async function logarAdmin() {
       document.getElementById('telaLogin').style.display='none';
       document.getElementById('painel').style.display='block';
       await carregarLista();
-    } catch (e) { 
-      mostrarMsg(msg, 'Erro: ' + e.message, 'erro'); 
-    }
+    } catch (e) { mostrarMsg(msg, 'Erro: ' + e.message, 'erro'); }
   } else {
     mostrarMsg(msg, 'Erro na conexão de autenticação', 'erro');
   }
@@ -247,15 +238,13 @@ async function logarAdmin() {
 async function cadastrarCliente() {
   const nome = document.getElementById('nomeCliente').value.trim();
   const email = document.getElementById('emailCliente').value.trim();
-  const dias = parseInt(document.getElementById('prazo').value) || 30;
+  const dias = parseInt(document.getElementById('prazo').value);
   const msg = document.getElementById('msgForm');
   const div = document.getElementById('dadosGerados');
-
   if (!nome || !email) return mostrarMsg(msg, 'Preencha Nome e E-mail!', 'erro');
 
   const senha = gerarSenha();
-  const expira = new Date(); 
-  expira.setDate(expira.getDate() + dias);
+  const expira = new Date(); expira.setDate(expira.getDate() + dias);
 
   const clienteObj = {
     id: 'cli_' + Date.now(),
@@ -292,22 +281,18 @@ async function cadastrarCliente() {
     localList.unshift(clienteObj);
     localStorage.setItem('admin_clientes_lista', JSON.stringify(localList));
 
-    div.innerHTML = `✅ <strong>ACESSO CRIADO COM SUCESSO!</strong><br>Nome: ${nome}<br>E-mail: ${email}<br>Senha PIN Gerada: <strong>${senha}</strong><br>Validade: ${dias} dias (${expira.toLocaleDateString('pt-BR')})`;
+    div.innerHTML = `✅ CRIADO!<br>Nome: ${nome}<br>E-mail: ${email}<br>Senha: <strong>${senha}</strong><br>Validade: ${dias} dias`;
     div.style.display='block';
     mostrarMsg(msg, 'Cadastrado com sucesso!', 'ok');
     document.getElementById('nomeCliente').value='';
     document.getElementById('emailCliente').value='';
     await carregarLista();
-  } catch (e) { 
-    mostrarMsg(msg, 'Erro: ' + e.message, 'erro'); 
-    div.style.display='none'; 
-  }
+  } catch (e) { mostrarMsg(msg, 'Erro: ' + e.message, 'erro'); div.style.display='none'; }
 }
 
 async function carregarLista() {
   const corpo = document.getElementById('listaClientes');
-  corpo.innerHTML = ''; 
-  listaCompleta = [];
+  corpo.innerHTML = ''; listaCompleta = [];
 
   if (db) {
     try {
@@ -386,27 +371,23 @@ function filtrarLista() {
   renderizarTabela(filtrados);
 }
 
-function abrirEditar(id, nome, email) {
+function abrirEditar(id,nome,email) {
   document.getElementById('editId').value = id;
   document.getElementById('editNome').value = nome;
   document.getElementById('editEmail').value = email;
   document.getElementById('modalEditar').style.display='flex';
 }
 
-function fecharModal() { 
-  document.getElementById('modalEditar').style.display='none'; 
-}
+function fecharModal() { document.getElementById('modalEditar').style.display='none'; }
 
 async function salvarEdicao() {
   const id = document.getElementById('editId').value;
   const nome = document.getElementById('editNome').value.trim();
   const email = document.getElementById('editEmail').value.trim();
   const dias = parseInt(document.getElementById('editPrazo').value) || 30;
-
   if (!nome || !email) return alert('Preencha todos os campos!');
 
-  const novaData = new Date(); 
-  novaData.setDate(novaData.getDate() + dias);
+  const novaData = new Date(); novaData.setDate(novaData.getDate() + dias);
 
   const itemLocal = listaCompleta.find(i => i.id === id);
   if (itemLocal) {
@@ -428,20 +409,16 @@ async function salvarEdicao() {
   if (db) {
     try {
       await db.collection('usuarios').doc(id).update({ nome, email, data_expiracao: novaData });
-    } catch (e) { 
-      console.warn("Update note:", e.message); 
-    }
+    } catch (e) { console.warn("Update note:", e.message); }
   }
 
   alert('✅ Dados atualizados com sucesso!');
-  fecharModal(); 
-  await carregarLista();
+  fecharModal(); await carregarLista();
 }
 
 async function renovar(uid, dias) {
   if (!confirm(`Adicionar ${dias} dias de validade?`)) return;
-  const nova = new Date(); 
-  nova.setDate(nova.getDate() + dias);
+  const nova = new Date(); nova.setDate(nova.getDate() + dias);
 
   const localList = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
   const localItem = localList.find(i => i.id === uid);
@@ -453,17 +430,14 @@ async function renovar(uid, dias) {
   if (db) {
     try {
       await db.collection('usuarios').doc(uid).update({ data_expiracao: nova });
-    } catch (e) {
-      console.warn("Renovar error:", e);
-    }
+    } catch (e) { console.warn("Renovar error:", e); }
   }
 
-  await carregarLista(); 
-  alert('✅ Validade renovada com sucesso!');
+  await carregarLista(); alert('✅ Validade renovada com sucesso!');
 }
 
 async function excluir(uid, email) {
-  if (!confirm(`EXCLUIR definitivamente o acesso de ${email}? Essa ação não tem volta!`)) return;
+  if (!confirm(`EXCLUIR definitivamente o acesso de ${email}?`)) return;
 
   const localList = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
   const novaLocal = localList.filter(i => i.id !== uid);
@@ -472,13 +446,10 @@ async function excluir(uid, email) {
   if (db) {
     try {
       await db.collection('usuarios').doc(uid).delete();
-    } catch (e) { 
-      console.warn("Delete note:", e.message); 
-    }
+    } catch (e) { console.warn("Delete note:", e.message); }
   }
 
-  await carregarLista(); 
-  alert('✅ Acesso excluído com sucesso!');
+  await carregarLista(); alert('✅ Acesso excluído com sucesso!');
 }
 
 function exportarLista() {
@@ -486,7 +457,7 @@ function exportarLista() {
   listaCompleta.forEach(i => {
     texto += `${i.nome};${i.email};${i.senha || '---'};${i.expiracao.toLocaleDateString('pt-BR')};${i.status.toUpperCase()}\n`;
   });
-  const blob = new Blob([texto], {type:'text/csv;charset=utf-8;'});
+  const blob = new Blob([texto], {type:'text/csv'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'lista_clientes.csv';

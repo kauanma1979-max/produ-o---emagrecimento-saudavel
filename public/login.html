@@ -91,7 +91,6 @@ function mostrarMensagem(el, texto, tipo='erro') {
   setTimeout(()=>el.style.display='none',6000);
 }
 
-// VERIFICA LOGADO E VALIDADE
 if (auth) {
   auth.onAuthStateChanged(async usuario => {
     if (!usuario) return;
@@ -127,11 +126,9 @@ if (auth) {
   });
 }
 
-// LOGIN GOOGLE
 async function loginGoogle() {
   const msg = document.getElementById('mensagem');
   if (!auth) {
-    // Fallback gracioso
     const emailManual = prompt("Digite seu e-mail do Google (Gmail):", "kauanma.1979@gmail.com");
     if (emailManual) {
       localStorage.setItem('acesso_ok', JSON.stringify({ tipo: 'google', email: emailManual, timestamp: Date.now() }));
@@ -163,7 +160,6 @@ async function loginGoogle() {
     setTimeout(() => { window.location.href = 'conteudo.html'; }, 1000);
   } catch (e) {
     if (e.code !== 'auth/cancelled-popup-request') {
-      // Tentar login via prompt/simulação local se popup for bloqueado
       const emailSim = prompt("Informe seu e-mail do Google para continuar:", "kauanma.1979@gmail.com");
       if (emailSim) {
         localStorage.setItem('acesso_ok', JSON.stringify({ tipo: 'google', email: emailSim, timestamp: Date.now() }));
@@ -176,7 +172,6 @@ async function loginGoogle() {
   }
 }
 
-// LOGIN E-MAIL/SENHA
 async function fazerLogin() {
   const email = document.getElementById('emailCliente').value.trim();
   const senha = document.getElementById('senhaCliente').value;
@@ -184,7 +179,7 @@ async function fazerLogin() {
   const msg = document.getElementById('mensagem');
 
   if (!email || !senha) return mostrarMensagem(msg, 'Preencha e-mail e senha!', 'erro');
-  btn.disabled = true; btn.textContent = 'Verificando...';
+  btn.disabled = true; btn.textContent = 'Conectando...';
 
   try {
     if (auth) {
@@ -194,7 +189,6 @@ async function fazerLogin() {
         mostrarMensagem(msg, '✅ Acesso liberado!', 'sucesso');
         setTimeout(() => { window.location.href = 'conteudo.html'; }, 1000);
       } catch (e) {
-        // Checa fallback local se a conta não estiver no Firebase auth mas for pin/cliente válido
         const clientesLocais = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
         const achouLocal = clientesLocais.find(c => c.email && c.email.toLowerCase() === email.toLowerCase());
         if (achouLocal && (achouLocal.senha === senha || senha === '123456' || senha === '12726658')) {
@@ -206,7 +200,7 @@ async function fazerLogin() {
           mostrarMensagem(msg, '✅ Acesso liberado!', 'sucesso');
           setTimeout(() => { window.location.href = 'conteudo.html'; }, 1000);
         } else {
-          mostrarMensagem(msg, 'Erro ao acessar: ' + e.message, 'erro');
+          mostrarMensagem(msg, 'Erro: ' + e.message, 'erro');
         }
       }
     } else {
