@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PROJETO EMAGRECIMENTO SAUDÁVEL – Acesso ao Sistema</title>
+  <title>PROJETO EMAGRECIMENTO SAUDÁVEL – Acesso Supabase</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; font-family:Arial, sans-serif; }
     body { background:linear-gradient(135deg,#1e3a8a,#3b82f6); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
@@ -45,6 +46,10 @@
 </div>
 
 <script>
+const SUPABASE_URL = "https://qnrtjzlhrvlpfcyrmfnq.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucnRqemxocnZscGZjeXJtZm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDkwMDEsImV4cCI6MjEwMTAyNTAwMX0.x3H_Gg78kyUxgG390VDSAoJ-xdFmIU910P7EW9MNqyY";
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
 function mostrarMensagem(texto, tipo = 'erro') {
   const el = document.getElementById('mensagem');
   if (el) {
@@ -57,6 +62,7 @@ function mostrarMensagem(texto, tipo = 'erro') {
 
 // Verifica acesso ativo no carregamento e parâmetros de URL
 window.addEventListener('DOMContentLoaded', () => {
+  // Leitura de parâmetros da URL (ex: ?codigo=001&pin=1234)
   const urlParams = new URLSearchParams(window.location.search);
   const pinParam = urlParams.get('pin');
   const emailParam = urlParams.get('email');
@@ -80,7 +86,7 @@ window.addEventListener('DOMContentLoaded', () => {
     try {
       const parsed = JSON.parse(rawOk);
       if (parsed && (parsed.email || parsed.senha)) {
-        mostrarMensagem('✅ Sessão ativa!', 'sucesso');
+        mostrarMensagem('✅ Sessão Supabase ativa!', 'sucesso');
         setTimeout(() => { window.location.href = 'conteudo.html'; }, 800);
       }
     } catch (e) {
@@ -97,12 +103,12 @@ async function fazerLogin() {
 
   if (!senha) return alert('Digite a senha ou PIN de acesso!');
 
-  if (btn) { btn.disabled = true; btn.textContent = 'Verificando...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Verificando no Supabase...'; }
 
   try {
     // 1. Verificação de senha Admin master
     if (senha === '12726658' || senha === '123456' || email === 'kauanma.1979@gmail.com') {
-      const sessaoObj = { tipo: 'admin', email: email || 'admin@emagrecimento.com', senha: senha, timestamp: Date.now() };
+      const sessaoObj = { tipo: 'supabase_admin', email: email || 'admin@emagrecimento.com', senha: senha, timestamp: Date.now() };
       localStorage.setItem('acesso_ok', JSON.stringify(sessaoObj));
       localStorage.setItem('acesso_seguro_v2', JSON.stringify({
         inicio: Date.now(),
@@ -117,7 +123,39 @@ async function fazerLogin() {
       return;
     }
 
-    // 2. Verificação em lista de clientes locais
+    // 2. Consulta no Banco de Dados Supabase (Tabela senhas_acesso)
+    if (supabaseClient) {
+      const { data, error } = await supabaseClient
+        .from('senhas_acesso')
+        .select('*')
+        .eq('senha', senha)
+        .maybeSingle();
+
+      if (!error && data) {
+        const validoAte = data.valido_ate ? (typeof data.valido_ate === 'number' ? data.valido_ate : new Date(data.valido_ate).getTime()) : null;
+        if (validoAte && Date.now() > validoAte && data.tipo !== 'admin') {
+          mostrarMensagem('⚠️ Essa senha/PIN expirou no Supabase! Solicite renovação.', 'erro');
+          return;
+        }
+
+        const sessaoObj = { tipo: 'supabase', email: email || data.dados_cliente?.email || 'cliente@emagrecimento.com', senha: senha, timestamp: Date.now() };
+        localStorage.setItem('acesso_ok', JSON.stringify(sessaoObj));
+        localStorage.setItem('acesso_seguro_v2', JSON.stringify({
+          inicio: Date.now(),
+          validade: data.validade_ms || 86400000,
+          dispositivo: 'SUPABASE_DEVICE',
+          senhaUsada: senha,
+          senha: senha,
+          liberado: 'sim'
+        }));
+
+        mostrarMensagem('✅ Acesso liberado pelo Supabase!', 'sucesso');
+        setTimeout(() => { window.location.href = 'conteudo.html'; }, 800);
+        return;
+      }
+    }
+
+    // 3. Verificação em lista de clientes locais (Fallback)
     const clientesLocais = JSON.parse(localStorage.getItem('admin_clientes_lista') || '[]');
     const achou = clientesLocais.find(c => (c.senha && c.senha === senha) || (c.email && c.email.toLowerCase() === email.toLowerCase()));
 
@@ -134,7 +172,7 @@ async function fazerLogin() {
       return;
     }
 
-    mostrarMensagem('Senha/PIN inválido ou não encontrado.', 'erro');
+    mostrarMensagem('Senha/PIN inválido ou não encontrado no Supabase.', 'erro');
 
   } catch (e) {
     alert('Erro ao conectar: ' + e.message);

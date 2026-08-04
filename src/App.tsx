@@ -669,15 +669,7 @@ export default function App() {
           <span>Configurar Perfil</span>
         </button>
 
-        <a
-          href="/admin.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 transition-all cursor-pointer border border-amber-400/20 my-1"
-        >
-          <Lock className="w-4 h-4 text-amber-400" />
-          <span>Painel Admin 📋</span>
-        </a>
+
 
         {/* Profile Card Summary in the Sidebar */}
         <div className="pt-6 border-t border-slate-800 mt-6 space-y-3">
